@@ -1,0 +1,22 @@
+name: Build data
+on:
+  workflow_dispatch:
+    inputs:
+      season: { description: "Season to build (e.g. 2025)", default: "2025" }
+  schedule:
+    - cron: "17 11 * * *"   # nightly; builds the current season
+permissions: { contents: write }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r pipeline/requirements.txt
+      - run: python pipeline/tests/test_statcast.py
+      - run: python pipeline/build.py ${{ github.event.inputs.season || '2026' }}
+      - run: |
+          git config user.name "data-bot"; git config user.email "actions@users.noreply.github.com"
+          git add public/data && (git diff --cached --quiet || git commit -m "data update") && git push

@@ -1,0 +1,20 @@
+:root { --bg:#fff; --fg:#14171a; --muted:#6b7280; --panel:#f6f7f9; --line:#e2e5ea; --accent:#1f6feb; --font:system-ui,sans-serif; --gap:12px; --fs:14px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) { --bg:#0e1116; --fg:#e6e8eb; --muted:#8b93a1; --panel:#171b22; --line:#2a303a; } }
+:root[data-theme=dark] { --bg:#0e1116; --fg:#e6e8eb; --muted:#8b93a1; --panel:#171b22; --line:#2a303a; }
+* { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--fg); font:var(--fs)/1.4 var(--font); }
+a { color:var(--accent); text-decoration:none } .muted { color:var(--muted) } .mono { font-variant-numeric:tabular-nums }
+nav { display:flex; gap:16px; padding:10px 16px; border-bottom:1px solid var(--line); align-items:center; flex-wrap:wrap } nav a.on { font-weight:700 }
+main { padding:16px; max-width:1300px; margin:0 auto }
+.banner { background:#fff3cd; color:#533f03; padding:6px 16px; font-size:13px }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:var(--gap); margin-bottom:var(--gap) }
+.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.btn, select, input { background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:5px 9px; font:inherit }
+.btn { cursor:pointer } .btn.on { background:var(--accent); color:#fff; border-color:var(--accent) }
+.grid { display:grid; gap:var(--gap); grid-template-columns:repeat(var(--cols,2),minmax(0,1fr)) } @media (max-width:760px){ .grid{ grid-template-columns:1fr } }
+.span2 { grid-column:1/-1 }
+table { border-collapse:collapse; width:100% } th,td { padding:4px 8px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap } th:first-child,td:first-child,th.l,td.l { text-align:left }
+th { cursor:pointer; position:sticky; top:0; background:var(--panel) } .scroll { overflow:auto; max-height:70vh }
+.pct { display:grid; grid-template-columns:130px 1fr 60px; gap:8px; align-items:center; margin:4px 0 } .bar { height:14px; background:var(--line); border-radius:7px; position:relative }
+.bar i { position:absolute; left:0; top:0; bottom:0; border-radius:7px } .bar b { position:absolute; top:-3px; transform:translateX(-50%); min-width:20px; height:20px; border-radius:10px; color:#fff; font-size:11px; text-align:center; line-height:20px }
+.chips { display:flex; flex-wrap:wrap; gap:4px; max-height:180px; overflow:auto } .chip { font-size:12px; padding:2px 7px; border:1px solid var(--line); border-radius:12px; cursor:pointer; background:var(--bg) } .chip.on { background:var(--accent); color:#fff }
+.stats { display:flex; flex-wrap:wrap; gap:10px } .stat { min-width:70px } .stat .k { font-size:11px; color:var(--muted) } .stat .v { font-size:18px; font-weight:600 }
