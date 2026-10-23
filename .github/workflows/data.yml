@@ -1,22 +1,76 @@
 name: Build data
+# Manual: Actions -> Build data -> Run workflow, seasons "2015-2026" (or "2025" / "2019,2021").
+# Nightly: rebuilds the current season only.
 on:
   workflow_dispatch:
     inputs:
-      season: { description: "Season to build (e.g. 2025)", default: "2025" }
+      seasons:
+        description: 'Seasons: "2015-2026", "2025" or "2019,2021"'
+        default: "2015-2026"
   schedule:
-    - cron: "17 11 * * *"   # nightly; builds the current season
+    - cron: "17 11 * * *"
 permissions: { contents: write }
+concurrency: { group: data, cancel-in-progress: false }
 jobs:
-  build:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    outputs:
+      seasons: ${{ steps.p.outputs.seasons }}
+    steps:
+      - id: p
+        run: |
+          IN="${{ github.event.inputs.seasons }}"; [ -z "$IN" ] && IN="$(date -u +%Y)"
+          python3 - "$IN" > s.json <<'PY'
+          import json, sys
+          out = []
+          for part in sys.argv[1].split(","):
+              part = part.strip()
+              if "-" in part:
+                  a, b = map(int, part.split("-")); out += range(a, b + 1)
+              elif part:
+                  out.append(int(part))
+          print(json.dumps(sorted(set(out))))
+          PY
+          echo "seasons=$(cat s.json)" >> "$GITHUB_OUTPUT"
+  season:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 3   # be gentle with Savant / FanGraphs
+      matrix:
+        season: ${{ fromJson(needs.plan.outputs.seasons) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install -r pipeline/requirements.txt
       - run: python pipeline/tests/test_statcast.py
-      - run: python pipeline/build.py ${{ github.event.inputs.season || '2026' }}
+      - run: python pipeline/build.py ${{ matrix.season }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: season-${{ matrix.season }}
+          path: public/data/${{ matrix.season }}
+  publish:
+    needs: season
+    if: always() && needs.season.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { pattern: season-*, path: _art }
       - run: |
+          for d in _art/season-*; do y="${d##*-}"; mkdir -p public/data/$y; cp -r "$d/." public/data/$y/; done
+          rm -rf _art
+          python3 - <<'PY'
+          import json, pathlib
+          d = pathlib.Path("public/data")
+          ys = sorted(int(p.name) for p in d.iterdir() if p.is_dir() and p.name.isdigit())
+          (d / "index.json").write_text(json.dumps({"seasons": ys, "statcastFrom": 2015}))
+          PY
           git config user.name "data-bot"; git config user.email "actions@users.noreply.github.com"
-          git add public/data && (git diff --cached --quiet || git commit -m "data update") && git push
+          git add public/data
+          git diff --cached --quiet && { echo "no data changes"; exit 0; }
+          git commit -m "data: update"
+          for i in 1 2 3 4; do git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0; sleep $((i*15)); done; exit 1
