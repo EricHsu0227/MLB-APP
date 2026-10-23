@@ -2,3 +2,4 @@ node_modules
 dist
 pipeline/cache
 __pycache__
+public/data/players

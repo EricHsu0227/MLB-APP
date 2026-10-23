@@ -29,10 +29,9 @@ export default function Player({ index }) {
 
   useEffect(() => {
     let on = true;
-    Promise.all(index.seasons.map((y) => load(`${y}/${role}.json`).then((d) => [y, d.players.find((p) => p.id === pid)]).catch(() => [y, null])))
-      .then((r) => on && setCareer(r.filter(([, p]) => p)));
+    load(`players/${role}/${pid}.json`).then((d) => on && setCareer(Object.entries(d.seasons).sort((a, b) => a[0] - b[0]).map(([y, v]) => [y, v])), () => on && setCareer([]));
     return () => { on = false; };
-  }, [index, role, pid]);
+  }, [role, pid]);
 
   if (!data) return <div className="muted">Loading…</div>;
   const player = data.players.find((p) => p.id === pid);
