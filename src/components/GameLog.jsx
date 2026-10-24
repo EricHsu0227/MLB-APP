@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import ApiError from '../components/ApiError.jsx';
 import { Link } from 'react-router-dom';
 import { useApi } from '../lib/mlbapi.js';
 import { gameScore, sumHitting, sumPitching } from '../lib/saber.js';
@@ -21,7 +22,7 @@ export default function GameLog({ id, role, season }) {
   const [last, setLast] = useState('all');
   const [win, setWin] = usePref('gamelog:win', 15);
   const [metric, setMetric] = usePref(`gamelog:metric:${role}`, role === 'bat' ? 'ops' : 'era');
-  const { data, error, loading } = useApi(`/people/${id}/stats?stats=gameLog&group=${group}&season=${season}&gameType=${gt}`, { ttl: 300000, pick: (x) => x?.stats?.[0]?.splits || [] });
+  const { data, error, loading, retry } = useApi(`/people/${id}/stats?stats=gameLog&group=${group}&season=${season}&gameType=${gt}`, { ttl: 300000, pick: (x) => x?.stats?.[0]?.splits || [] });
   const all = data || [];
   const rows = useMemo(() => {
     // running season line after each game, oldest first
@@ -50,7 +51,7 @@ export default function GameLog({ id, role, season }) {
   const vals = shown.map(gameVals);
 
   if (loading && !data) return <div className="muted pad">Loading game log…</div>;
-  if (error && !data) return <div className="muted pad">Couldn’t load the game log from the MLB Stats API ({String(error.message)}).</div>;
+  if (error && !data) return <ApiError inline what="the game log" error={error} retry={retry} />;
   return (
     <>
       <div className="row">
@@ -65,7 +66,7 @@ export default function GameLog({ id, role, season }) {
             <select value={win} onChange={(e) => setWin(+e.target.value)}>{[5, 10, 15, 30].map((n) => <option key={n} value={n}>{n} games</option>)}</select></div>
           <LineChart series={[{ label: `Rolling ${win}-game ${metrics.find((m) => m[0] === metric)[1]}`, points: series }]} fmt={(v) => (role === 'bat' ? r3(v) : r2(v))} height={180} xTicks={series.filter((_, i) => i % Math.ceil(series.length / 8) === 0).map((p) => p.x)} />
           <div className="muted small">x-axis is game number in the season.</div>
-          <div className="scroll tall"><table className="t sticky-first"><thead><tr>
+          <div className="scroll tall"><table className="t sticky-first" data-cust={role === 'pit' ? 'gamelog-pit' : 'gamelog-bat'} data-title="Game log"><thead><tr>
             <th className="l">Date</th><th className="l">Opp</th><th className="l">Result</th>
             {role === 'bat'
               ? ['PA', 'AB', 'R', 'H', '2B', '3B', 'HR', 'RBI', 'BB', 'SO', 'SB', 'OPS', 'AVG', 'OBP', 'SLG'].map((h, i) => <th key={h} title={i >= 11 ? (i === 11 ? 'OPS in this game' : 'Season to date, after this game') : undefined}>{h}</th>)

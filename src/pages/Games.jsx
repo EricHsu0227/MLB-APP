@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ApiError from '../components/ApiError.jsx';
 import { Link } from 'react-router-dom';
 import { addDays, gameStatus, gamesOf, schedulePath, useApi, ymd } from '../lib/mlbapi.js';
 import { Diamond, Linescore, TeamLink } from '../components/game.jsx';
@@ -38,7 +39,7 @@ function GameCard({ g }) {
 export default function Games() {
   const [date, setDate] = usePref('games:date-v1', ymd(new Date()));
   const [today] = useState(ymd(new Date()));
-  const { data, error, loading } = useApi(schedulePath(date), { refresh: 30000, ttl: 15000 });
+  const { data, error, loading, retry } = useApi(schedulePath(date), { refresh: 30000, ttl: 15000 });
   const games = gamesOf(data).filter((g) => g.teams?.home?.team && g.teams?.away?.team);
   const live = games.some((g) => g.status?.abstractGameState === 'Live');
   return (
@@ -51,7 +52,7 @@ export default function Games() {
             <button type="button" className="btn sm" onClick={() => setDate(today)}>Today</button></div></div>
         <div className="muted small" style={{ marginTop: 6 }}>{loading && !data ? 'Loading…' : `${games.length} game${games.length === 1 ? '' : 's'}`}{live ? ' · live, refreshing every 30s' : ''} · Source: MLB Stats API</div>
       </section>
-      {error && !data && <div className="panel">Couldn’t load games from the MLB Stats API ({String(error.message)}). Check your connection or ad blocker, then try again.</div>}
+      {error && !data && <ApiError what="games" error={error} retry={retry} />}
       {data && !games.length && <div className="panel muted">No games on this date. Try another day — the regular season runs from late March to late September.</div>}
       {games.map((g) => <GameCard key={g.gamePk} g={g} />)}
     </>

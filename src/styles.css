@@ -101,3 +101,16 @@ table.t.sm { font-size:.88em } .linescore th, .linescore td { text-align:center;
 .wp-key { display:flex; gap:14px; font-size:.85em } .wp-key i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px }
 @media print { .game-tabs { display:none } }
 .dotkey { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px }
+
+/* page customizer */
+.pop-tools { max-height: 78vh; overflow: auto }
+.cust-t { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line) } .cust .chips { max-height: none }
+.chip input { display: none }
+/* play by play */
+.play-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center } .play-desc { margin:3px 0 }
+.obadge { min-width:34px; text-align:center; font-weight:800; font-size:.78em; padding:2px 6px; border-radius:6px; background:var(--line); color:var(--text) }
+.obadge.hr { background:var(--accent); color:var(--accent-fg) } .obadge.hit { background:var(--p100); color:#fff } .obadge.bb { background:var(--c2); color:#fff } .obadge.k { background:var(--p0); color:#fff }
+.play.hr { border-color:var(--accent) } .play.hit { border-color:var(--p100) } .play.k { border-color:var(--p0) } .play.bb { border-color:var(--c2) }
+.pdetails { margin-top:4px } .pdetails summary { cursor:pointer; display:flex; flex-wrap:wrap; gap:6px; align-items:center } .pdetails .pitches { display:inline-flex; flex-wrap:wrap; gap:3px }
+.pitchtbl .ball, .pdetails td.ball { color:var(--c3) } .pdetails td.strike { color:var(--p0) } .pdetails td.inplay { color:var(--p100); font-weight:700 }
+.panel.card .inn-h { margin-top:0 }
