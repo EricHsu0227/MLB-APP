@@ -91,3 +91,4 @@ table.t.sm { font-size:.88em } .linescore th, .linescore td { text-align:center;
 
 .scatter .sdot { fill:var(--accent); opacity:.55; cursor:pointer } .scatter .sdot.hot { fill:var(--c2); opacity:1; stroke:var(--fg); stroke-width:2 } .fitline { stroke:var(--muted); stroke-width:1.6; stroke-dasharray:6 5 }
 .axis.b { font-weight:700 }
+@media (max-width:640px) { .nav nav { order:4; width:100%; flex-wrap:wrap; gap:2px } .nav nav a { padding:5px 9px; font-size:.94em; white-space:nowrap } .appearance { margin-left:auto } }
