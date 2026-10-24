@@ -38,8 +38,8 @@ export default function Leaderboard({ index }) {
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState({ key: null, dir: -1 });
-  const [shade, setShade] = usePref('lb:shade', true);
-  const [inline, setInline] = usePref('lb:inline', true);
+  const [shade, setShade] = usePref('tools:shade', true);
+  const [inline, setInline] = usePref('tools:splits', true);
   const [pageSize, setPageSize] = usePref('lb:ps', 50);
   const [page, setPage] = useState(0);
   const [edit, setEdit] = useState(false);

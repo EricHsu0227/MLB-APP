@@ -12,6 +12,9 @@ const DEFAULT_STATS = { bat: ['PA', 'AVG', 'OBP', 'SLG', 'wOBA', 'xwOBA', 'wRC+'
 const parse = (s) => (s || '').split(',').filter(Boolean).map((t) => { const [role, id, season] = t.split(':'); return { role, id: +id, season: +season }; }).filter((e) => (e.role === 'bat' || e.role === 'pit') && e.id);
 const enc = (es) => es.map((e) => `${e.role}:${e.id}:${e.season}`).join(',');
 
+
+const download = (name, text, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
+
 function useFiles(entries) {
   const [files, setFiles] = useState({});
   const key = [...new Set(entries.map((e) => `${e.role}/${e.id}`))].join('|');
@@ -39,8 +42,8 @@ export default function Compare({ index }) {
   const [split, setSplit] = usePref('cmp:split', 'all');
   const [view, setView] = usePref('cmp:view', 'table');
   const [withPct, setWithPct] = usePref('cmp:pct', true);
-  const [inline, setInline] = usePref('cmp:inline', true);
-  const [heatOn, setHeatOn] = usePref('cmp:heat', true);
+  const [inline, setInline] = usePref('tools:splits', true);
+  const [heatOn, setHeatOn] = usePref('tools:heat', true);
   const [onlyDiff, setOnlyDiff] = useState(false);
   const [edit, setEdit] = useState(false);
   const [trendKey, setTrendKey] = useState('WAR');
@@ -75,6 +78,29 @@ export default function Compare({ index }) {
     return vs.length < 2 ? null : d.dir < 0 ? Math.min(...vs) : Math.max(...vs);
   };
 
+  // export: stats as rows, one column per player-season (plus L/R columns when splits are shown)
+  const exportTable = () => {
+    const cols = entries.flatMap((e) => {
+      const f = fileOf(e); const nm = `${f?.name || e.id} ${e.season}`;
+      const parts = [[`${nm}${inline ? ` (${splitLabel(split, e.role)})` : ''}`, e, split]];
+      if (inline) for (const x of ['all', 'vsL', 'vsR']) if (x !== split) parts.push([`${nm} (${splitLabel(x, e.role)})`, e, x]);
+      return parts;
+    });
+    const rows = shownStats.map((k) => [statDef(k, role).label, ...cols.map(([, e, sx]) => { const v = fileOf(e)?.seasons?.[e.season]?.splits?.[sx]?.[k]; return v ?? ''; })]);
+    return { head: ['Stat', ...cols.map((c) => c[0])], rows };
+  };
+  const [note, setNote] = useState('');
+  const flash = (m) => { setNote(m); setTimeout(() => setNote(''), 2200); };
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const fname = () => `compare-${entries.map((e) => `${fileOf(e)?.name || e.id}-${e.season}`).join('_').replace(/[^\w-]+/g, '_').slice(0, 80)}`;
+  const doExport = (kind) => {
+    const { head, rows } = exportTable();
+    if (kind === 'csv') download(fname() + '.csv', [head, ...rows].map((r) => r.map(esc).join(',')).join('\n'), 'text/csv');
+    else if (kind === 'json') download(fname() + '.json', JSON.stringify({ players: entries.map((e) => ({ ...e, name: fileOf(e)?.name })), split, stats: head.slice(1).map((h, i) => ({ column: h, values: Object.fromEntries(rows.map((r) => [r[0], r[i + 1]])) })) }, null, 2), 'application/json');
+    else if (kind === 'copy') navigator.clipboard?.writeText([head, ...rows].map((r) => r.join('\t')).join('\n')).then(() => flash('Copied — paste into a spreadsheet'), () => flash('Copy blocked by the browser'));
+    else if (kind === 'link') navigator.clipboard?.writeText(location.href).then(() => flash('Link copied'), () => flash('Copy blocked by the browser'));
+  };
+
   // trend overlay: one line per distinct player
   const players = [...new Map(entries.map((e) => [`${e.role}:${e.id}`, e])).values()];
   const trendSeries = players.map((e) => { const f = fileOf(e); return { label: f?.name || '…', points: f ? Object.keys(f.seasons).map(Number).sort().map((y) => ({ x: y, y: f.seasons[y]?.splits[split]?.[trendKey] ?? null })) : [] }; });
@@ -88,6 +114,13 @@ export default function Compare({ index }) {
         <div className="row" style={{ marginTop: 10 }}>
           <PlayerSearch placeholder={entries.length >= 8 ? 'Max 8 player-seasons' : 'Add a player…'} onPick={add} />
           {entries.length > 0 && <button type="button" className="btn sm" onClick={() => setEntries([])}>Clear all</button>}
+          {entries.length > 0 && <span className="row export"><span className="muted small">Export:</span>
+            <button type="button" className="btn sm" onClick={() => doExport('csv')}>CSV</button>
+            <button type="button" className="btn sm" onClick={() => doExport('json')}>JSON</button>
+            <button type="button" className="btn sm" onClick={() => doExport('copy')}>Copy table</button>
+            <button type="button" className="btn sm" onClick={() => doExport('link')}>Copy link</button>
+            <button type="button" className="btn sm" onClick={() => window.print()}>Print / PDF</button>
+            {note && <span className="small" style={{ color: 'var(--accent)' }}>{note}</span>}</span>}
         </div>
         <div className="chips-row">
           {entries.map((e, i) => { const f = fileOf(e); const ys = f ? Object.keys(f.seasons).map(Number).sort() : [e.season]; return (

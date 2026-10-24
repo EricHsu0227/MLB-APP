@@ -69,3 +69,9 @@ table.t { border-collapse:separate; border-spacing:0; width:100%; font-size:.94e
 .leader .rank { color:var(--accent) } .tabs button:nth-child(6n+1).on { background:var(--c1) } .tabs button:nth-child(6n+2).on { background:var(--c2) } .tabs button:nth-child(6n+3).on { background:var(--c3) } .tabs button:nth-child(6n+4).on { background:var(--c4) } .tabs button:nth-child(6n+5).on { background:var(--c5) } .tabs button:nth-child(6n).on { background:var(--c6) }
 .t th.active { border-bottom:2px solid var(--accent) }
 .sub .good { color:color-mix(in srgb, var(--p100) 65%, var(--fg)) } .sub .bad { color:color-mix(in srgb, var(--p0) 65%, var(--fg)) } .sub .good::before { content:'▲ ' } .sub .bad::before { content:'▼ ' }
+
+/* floating tools */
+.tools { position:fixed; right:18px; bottom:18px; z-index:60; display:flex; flex-direction:column; align-items:flex-end; gap:10px }
+.tools-fab { width:52px; height:52px; border-radius:50%; border:0; background:var(--accent); color:var(--accent-fg); font-size:1.4em; cursor:pointer; box-shadow:0 8px 24px #0006 } .tools-fab:hover { filter:brightness(1.1) }
+.pop-tools { width:min(340px,92vw); margin:0; box-shadow:0 20px 50px #0005 } .tool-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; border-bottom:1px dashed var(--line); cursor:pointer }
+@media print { .tools, .nav, .jump { display:none !important } }

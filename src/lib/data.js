@@ -23,7 +23,17 @@ export const useSeason = (season, role) => useData(season && role ? `${season}/$
 /** Per-viewer UI preference (localStorage may be unavailable). */
 export function usePref(key, init) {
   const [v, setV] = useState(() => { try { const s = localStorage.getItem('mlb:' + key); return s ? JSON.parse(s) : init; } catch { return init; } });
-  const set = (n) => setV((o) => { const val = typeof n === 'function' ? n(o) : n; try { localStorage.setItem('mlb:' + key, JSON.stringify(val)); } catch { /* ignore */ } return val; });
+  useEffect(() => { // keep every component using the same key in step
+    const on = (e) => { if (e.detail.key === key) setV(e.detail.val); };
+    window.addEventListener('mlb-pref', on);
+    return () => window.removeEventListener('mlb-pref', on);
+  }, [key]);
+  const set = (n) => {
+    const val = typeof n === 'function' ? n(v) : n;
+    try { localStorage.setItem('mlb:' + key, JSON.stringify(val)); } catch { /* ignore */ }
+    setV(val);
+    window.dispatchEvent(new CustomEvent('mlb-pref', { detail: { key, val } }));
+  };
   return [v, set];
 }
 export const headshot = (id, w = 120) => `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_${w},q_auto:best/v1/people/${id}/headshot/67/current`;
