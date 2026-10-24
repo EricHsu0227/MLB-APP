@@ -2,10 +2,10 @@ import { NavLink, Route, Routes, Navigate, useNavigate, useParams } from 'react-
 import { useData } from './lib/data.js';
 import { PlayerSearch } from './components/ui.jsx';
 import Games from './pages/Games.jsx';
+import Game from './pages/Game.jsx';
 import Standings from './pages/Standings.jsx';
 import Teams from './pages/Teams.jsx';
 import Team from './pages/Team.jsx';
-import Lab from './pages/Lab.jsx';
 import Tools from './components/Tools.jsx';
 import Appearance, { useAppearance } from './components/Appearance.jsx';
 import Home from './pages/Home.jsx';
@@ -29,7 +29,6 @@ export default function App() {
           <NavLink to="/standings">Standings</NavLink>
           <NavLink to="/teams">Teams</NavLink>
           <NavLink to="/leaderboard">Leaderboard</NavLink>
-          <NavLink to="/lab">Lab</NavLink>
           <NavLink to="/compare">Compare</NavLink>
         </nav>
         <PlayerSearch className="nav-search" placeholder="Search any player…" onPick={(p) => nav(`/player/${p.roles[0]}/${p.id}`)} />
@@ -43,8 +42,8 @@ export default function App() {
             <Route path="/leaderboard" element={<Leaderboard index={index} />} />
             <Route path="/compare" element={<Compare index={index} />} />
             <Route path="/games" element={<Games />} />
+            <Route path="/game/:pk" element={<Game />} />
             <Route path="/standings" element={<Standings index={index} />} />
-            <Route path="/lab" element={<Lab index={index} />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/team/:abbr" element={<Team index={index} />} />
             <Route path="/player/:role/:id" element={<Player index={index} />} />

@@ -7,7 +7,8 @@ const cache = new Map();
 export function api(path, ttl = 30000) {
   const hit = cache.get(path);
   if (hit && Date.now() - hit.t < ttl) return hit.p;
-  const p = fetch(BASE + path).then((r) => { if (!r.ok) throw new Error(`MLB API ${r.status}`); return r.json(); });
+  const url = path.startsWith('/v1.1') ? `https://statsapi.mlb.com/api${path}` : BASE + path;
+  const p = fetch(url).then((r) => { if (!r.ok) throw new Error(`MLB API ${r.status}`); return r.json(); });
   cache.set(path, { t: Date.now(), p });
   p.catch(() => cache.delete(path));
   return p;
@@ -35,6 +36,8 @@ export const standingsPath = (season) => `/standings?leagueId=103,104&season=${s
 export const rosterPath = (teamId) => `/teams/${teamId}/roster?rosterType=active`;
 export const teamSchedulePath = (teamId, from, to) => `/schedule?sportId=1&teamId=${teamId}&startDate=${from}&endDate=${to}&hydrate=linescore,team`;
 export const boxscorePath = (pk) => `/game/${pk}/boxscore`;
+export const feedPath = (pk) => `/v1.1/game/${pk}/feed/live`;
+export const winProbPath = (pk) => `/game/${pk}/winProbability`;
 
 /** schedule response -> flat list of games */
 export const gamesOf = (d) => (d?.dates || []).flatMap((x) => x.games || []);

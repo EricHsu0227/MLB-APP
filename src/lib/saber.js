@@ -30,62 +30,38 @@ export function battingOrder(nine) {
   return slots.map((i) => s[i]).filter(Boolean);
 }
 
-/** Pearson r and least-squares line for [{x,y}] points. */
-export function fitLine(pts) {
-  const n = pts.length; if (n < 3) return null;
-  const mx = pts.reduce((a, p) => a + p.x, 0) / n, my = pts.reduce((a, p) => a + p.y, 0) / n;
-  let sxx = 0, syy = 0, sxy = 0;
-  for (const p of pts) { sxx += (p.x - mx) ** 2; syy += (p.y - my) ** 2; sxy += (p.x - mx) * (p.y - my); }
-  if (!sxx || !syy) return null;
-  const slope = sxy / sxx;
-  return { slope, intercept: my - slope * mx, r: sxy / Math.sqrt(sxx * syy) };
+/** "6.1" innings notation -> outs. */
+export function ipToOuts(ip) {
+  if (ip == null) return 0;
+  const [w, f = '0'] = String(ip).split('.');
+  return (+w || 0) * 3 + (+f || 0);
+}
+export const outsToIp = (o) => `${Math.floor(o / 3)}.${o % 3}`;
+
+/** Bill James Game Score for a pitching line (MLB API field names). */
+export function gameScore(s) {
+  const outs = ipToOuts(s.inningsPitched);
+  const inningsAfter4 = Math.max(0, Math.floor((outs - 12) / 3));
+  const er = s.earnedRuns || 0;
+  return 50 + outs + 2 * inningsAfter4 + (s.strikeOuts || 0) - 2 * (s.hits || 0) - 4 * er - 2 * ((s.runs || 0) - er) - (s.baseOnBalls || 0);
 }
 
-/**
- * Delta-method aging curve. rows: [{id, season, age, v}] (already filtered to qualified seasons).
- * Returns [{age, n, delta}] where delta is the mean change in v from `age` to `age + 1`
- * across players with consecutive qualifying seasons.
- */
-export function agingDeltas(rows, minN = 8) {
-  const by = new Map();
-  for (const r of rows) { if (typeof r.v !== 'number' || typeof r.age !== 'number') continue; by.set(`${r.id}:${r.season}`, r); }
-  const acc = new Map();
-  for (const r of by.values()) {
-    const nx = by.get(`${r.id}:${r.season + 1}`); if (!nx) continue;
-    const a = acc.get(r.age) || { n: 0, sum: 0 }; a.n++; a.sum += nx.v - r.v; acc.set(r.age, a);
-  }
-  return [...acc.entries()].filter(([, a]) => a.n >= minN).map(([age, a]) => ({ age, n: a.n, delta: a.sum / a.n })).sort((x, y) => x.age - y.age);
+const n = (v) => +v || 0;
+/** Sum hitting counting stats over game lines. */
+export function sumHitting(lines) {
+  const t = { pa: 0, ab: 0, h: 0, d: 0, t: 0, hr: 0, r: 0, rbi: 0, bb: 0, ibb: 0, hbp: 0, sf: 0, so: 0, sb: 0, cs: 0 };
+  for (const s of lines) { t.pa += n(s.plateAppearances); t.ab += n(s.atBats); t.h += n(s.hits); t.d += n(s.doubles); t.t += n(s.triples); t.hr += n(s.homeRuns); t.r += n(s.runs); t.rbi += n(s.rbi); t.bb += n(s.baseOnBalls); t.hbp += n(s.hitByPitch); t.sf += n(s.sacFlies); t.so += n(s.strikeOuts); t.sb += n(s.stolenBases); t.cs += n(s.caughtStealing); }
+  const tb = t.h + t.d + 2 * t.t + 3 * t.hr;
+  const obpDen = t.ab + t.bb + t.hbp + t.sf;
+  t.avg = t.ab ? t.h / t.ab : null; t.obp = obpDen ? (t.h + t.bb + t.hbp) / obpDen : null; t.slg = t.ab ? tb / t.ab : null;
+  t.ops = t.obp != null && t.slg != null ? t.obp + t.slg : null;
+  return t;
 }
-
-/** Running total of deltas, starting at 0 on the first age. Returns [{age, v}]. */
-export function cumulative(deltas) {
-  let t = 0; const out = [];
-  for (const d of deltas) { out.push({ age: d.age, v: t }); t += d.delta; }
-  if (deltas.length) out.push({ age: deltas.at(-1).age + 1, v: t });
-  return out;
+/** Sum pitching counting stats over game lines. */
+export function sumPitching(lines) {
+  const t = { outs: 0, h: 0, r: 0, er: 0, hr: 0, bb: 0, so: 0, g: 0, gs: 0, w: 0, l: 0, sv: 0, np: 0 };
+  for (const s of lines) { t.outs += ipToOuts(s.inningsPitched); t.h += n(s.hits); t.r += n(s.runs); t.er += n(s.earnedRuns); t.hr += n(s.homeRuns); t.bb += n(s.baseOnBalls); t.so += n(s.strikeOuts); t.g++; t.gs += n(s.gamesStarted); t.w += n(s.wins); t.l += n(s.losses); t.sv += n(s.saves); t.np += n(s.numberOfPitches); }
+  t.ip = outsToIp(t.outs);
+  t.era = t.outs ? (t.er * 27) / t.outs : null; t.whip = t.outs ? ((t.h + t.bb) * 3) / t.outs : null; t.k9 = t.outs ? (t.so * 27) / t.outs : null;
+  return t;
 }
-
-/** z-score columns for a pool of rows over keys; returns {mean, sd} per key. */
-export function zStats(pool, keys) {
-  const out = {};
-  for (const k of keys) {
-    const xs = pool.map((r) => r[k]).filter((v) => typeof v === 'number' && Number.isFinite(v));
-    if (xs.length < 5) continue;
-    const m = xs.reduce((a, b) => a + b, 0) / xs.length;
-    const sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / xs.length);
-    if (sd > 0) out[k] = { m, sd };
-  }
-  return out;
-}
-
-/** Distance between two rows over the z-stats keys they both have; null if fewer than 3 shared. */
-export function zDistance(a, b, z) {
-  let s = 0, n = 0;
-  for (const k of Object.keys(z)) {
-    if (typeof a[k] !== 'number' || typeof b[k] !== 'number') continue;
-    s += ((a[k] - b[k]) / z[k].sd) ** 2; n++;
-  }
-  return n < 3 ? null : Math.sqrt(s / n);
-}
-/** 0-100 similarity from a z distance (0 = identical). */
-export const similarity = (d) => (d == null ? null : Math.max(0, Math.round(100 - 30 * d)));

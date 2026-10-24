@@ -7,12 +7,13 @@ import { heat, peerPool, percentile } from '../lib/stats.js';
 import { Bubble, Headshot, Seg, SeasonSelect, SplitSeg, StatPicker } from '../components/ui.jsx';
 import { LineChart, Spark, seriesColor } from '../components/charts.jsx';
 import { pctColor, tint } from '../lib/themes.js';
+import GameLog from '../components/GameLog.jsx';
 
-const SPECIAL = { summary: 'Key stats', percentiles: 'Percentile rankings', trend: 'Trends', splits: 'Left / right splits' };
+const SPECIAL = { summary: 'Key stats', percentiles: 'Percentile rankings', trend: 'Trends', splits: 'Left / right splits', gamelog: 'Game log' };
 const label = (role, id) => SPECIAL[id] || sectionLabel(role, id);
-const defaultOrder = (role) => ['summary', 'percentiles', 'trend', 'splits', ...sectionIds(role)];
+const defaultOrder = (role) => ['summary', 'percentiles', 'trend', 'splits', 'gamelog', ...sectionIds(role)];
 const DEFAULT_LAYOUT = { hidden: ['all'], wide: [], cols: 2, custom: {}, tableSplit: {} };
-const WIDE = new Set(['dashboard', 'standard', 'advanced', 'battedBall', 'discipline', 'statcast', 'batTracking', 'pitchInfo', 'pitchValues', 'stuff', 'winProb', 'value', 'all']);
+const WIDE = new Set(['gamelog', 'dashboard', 'standard', 'advanced', 'battedBall', 'discipline', 'statcast', 'batTracking', 'pitchInfo', 'pitchValues', 'stuff', 'winProb', 'value', 'all']);
 const SUMMARY = { bat: ['PA', 'AVG', 'OBP', 'SLG', 'wOBA', 'xwOBA', 'wRC+', 'HR', 'SB', 'WAR'], pit: ['IP', 'ERA', 'FIP', 'xFIP', 'K%', 'BB%', 'WHIP', 'sc_xwOBA', 'WAR'] };
 const PCT_DEFAULT = { bat: ['xwOBA', 'xAVG', 'xSLG', 'EV', 'maxEV', 'Barrel%', 'HardHit%', 'K%', 'BB%', 'Spd', 'SwStr%', 'O-Swing%', 'AvgBatSpeed'], pit: ['xERA', 'FIP', 'K%', 'BB%', 'SwStr%', 'CStr%', 'GB%', 'Barrel%', 'HardHit%', 'EV', 'FBv', 'sp_stuff'] };
 
@@ -49,12 +50,13 @@ export default function Player({ index }) {
   const line = cur.splits[split] || {};
   const age = cur.splits.all?.Age;
 
-  const ctx = { role, file, seasons, season, split, cur, allKeys, keySet, seasonFile, L, set, setSeason: (y) => setParam('season', y) };
+  const ctx = { id, role, file, seasons, season, split, cur, allKeys, keySet, seasonFile, L, set, setSeason: (y) => setParam('season', y) };
   const renderSection = (s) => {
     if (s === 'summary') return <Summary {...ctx} />;
     if (s === 'percentiles') return <Percentiles {...ctx} />;
     if (s === 'trend') return <Trend {...ctx} />;
     if (s === 'splits') return <SplitsCard {...ctx} />;
+    if (s === 'gamelog') return <GameLog {...ctx} />;
     return <DataSection {...ctx} id={s} />;
   };
 
