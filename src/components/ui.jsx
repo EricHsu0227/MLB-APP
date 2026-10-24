@@ -107,3 +107,11 @@ export function StatPicker({ keys, role, value, onChange, max = Infinity }) {
   );
 }
 export { SECTIONS };
+
+/** Small "L .xxx · R .xxx" line under a value; each split is green/red vs the main value. */
+export function SubSplits({ line, k, d, main, role }) {
+  const items = SPLITS.filter(([x]) => x !== 'all').map(([x]) => ({ x, v: line?.[x]?.[k] }));
+  if (!items.some((i) => typeof i.v === 'number')) return null;
+  const cls = (v) => (typeof v !== 'number' || typeof main !== 'number' || !d.dir || v === main ? '' : (v - main) * d.dir > 0 ? ' good' : ' bad');
+  return <div className="sub">{items.map(({ x, v }) => <span key={x} className={'s' + cls(v)} title={splitLabel(x, role)}>{x === 'vsL' ? 'L' : 'R'} {d.f(v)}</span>)}</div>;
+}

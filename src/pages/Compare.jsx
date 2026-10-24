@@ -3,8 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { load, usePref } from '../lib/data.js';
 import { statDef, splitLabel, keysOfSeasons } from '../lib/catalog.js';
 import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
-import { peerPool, percentile } from '../lib/stats.js';
-import { Bubble, Headshot, PlayerSearch, Seg, SplitSeg, StatPicker } from '../components/ui.jsx';
+import { heat, peerPool, percentile } from '../lib/stats.js';
+import { Bubble, Headshot, PlayerSearch, Seg, SplitSeg, StatPicker, SubSplits } from '../components/ui.jsx';
+import { tint } from '../lib/themes.js';
 import { LineChart, Radar, seriesColor } from '../components/charts.jsx';
 
 const DEFAULT_STATS = { bat: ['PA', 'AVG', 'OBP', 'SLG', 'wOBA', 'xwOBA', 'wRC+', 'K%', 'BB%', 'EV', 'Barrel%', 'HardHit%', 'HR', 'SB', 'WAR'], pit: ['IP', 'ERA', 'FIP', 'xFIP', 'K%', 'BB%', 'K-BB%', 'WHIP', 'GB%', 'SwStr%', 'FBv', 'WAR'] };
@@ -38,6 +39,8 @@ export default function Compare({ index }) {
   const [split, setSplit] = usePref('cmp:split', 'all');
   const [view, setView] = usePref('cmp:view', 'table');
   const [withPct, setWithPct] = usePref('cmp:pct', true);
+  const [inline, setInline] = usePref('cmp:inline', true);
+  const [heatOn, setHeatOn] = usePref('cmp:heat', true);
   const [onlyDiff, setOnlyDiff] = useState(false);
   const [edit, setEdit] = useState(false);
   const [trendKey, setTrendKey] = useState('WAR');
@@ -110,6 +113,8 @@ export default function Compare({ index }) {
             <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : `Choose stats (${stats.length})`}</button>
             <label className="small row"><input type="checkbox" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} /> Only differences</label>
             <label className="small row"><input type="checkbox" checked={withPct} onChange={(e) => setWithPct(e.target.checked)} /> Percentiles</label>
+            <label className="small row"><input type="checkbox" checked={inline} onChange={(e) => setInline(e.target.checked)} /> Show L/R splits</label>
+            <label className="small row"><input type="checkbox" checked={heatOn} onChange={(e) => setHeatOn(e.target.checked)} /> Color coding</label>
           </div>
           {edit && <StatPicker keys={allKeys} role={role} value={stats} onChange={setStats} />}
         </section>)}
@@ -119,7 +124,8 @@ export default function Compare({ index }) {
           <thead><tr><th className="l">Stat</th>{entries.map((e, i) => <th key={i} style={{ borderBottom: `3px solid ${colorOf(i)}` }}>{fileOf(e)?.name || '…'}<div className="muted small">{e.season} · {fileOf(e)?.seasons?.[e.season]?.team}</div></th>)}</tr></thead>
           <tbody>{shownStats.map((k) => { const d = statDef(k, role); const b = best(k); return (
             <tr key={k}><td className="l" title={d.desc}>{d.label}</td>
-              {entries.map((e, i) => { const v = lineOf(e)?.[k]; const p = withPct ? pctOf(e, k) : null; return <td key={i} className={'mono' + (b != null && v === b ? ' best' : '')}>{statDef(k, e.role).f(v)}{p != null && <> <Bubble p={p} size={22} /></>}</td>; })}</tr>); })}</tbody></table></div></section>)}
+              {entries.map((e, i) => { const v = lineOf(e)?.[k]; const p = withPct ? pctOf(e, k) : null; const vals = entries.map((x) => lineOf(x)?.[k]); const sd = statDef(k, e.role);
+                return <td key={i} className={'mono' + (b != null && v === b ? ' best' : '')} style={heatOn && roles.length === 1 ? tint(heat(vals, v, sd.dir), 20) : undefined}>{sd.f(v)}{p != null && <> <Bubble p={p} size={22} /></>}{inline && split === 'all' && <SubSplits line={fileOf(e)?.seasons?.[e.season]?.splits} k={k} d={sd} main={v} role={e.role} />}</td>; })}</tr>); })}</tbody></table></div></section>)}
 
       {entries.length > 0 && view === 'radar' && (
         <section className="panel"><div className="radar-wrap">
