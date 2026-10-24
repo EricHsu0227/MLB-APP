@@ -46,3 +46,14 @@ export function percentileOf(pool, split, key, v, dir) {
   return percentile(pool.map((r) => r.splits[split]?.[key]), v, dir < 0);
 }
 export const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+
+/** 0-100 "how good" position of v inside a list of values (min-max), direction-aware. Null when there is nothing to compare. */
+export function heat(values, v, dir) {
+  if (!dir || typeof v !== 'number') return null;
+  const xs = values.filter((x) => typeof x === 'number' && Number.isFinite(x));
+  if (xs.length < 2) return null;
+  const lo = Math.min(...xs), hi = Math.max(...xs);
+  if (hi === lo) return null;
+  const p = ((v - lo) / (hi - lo)) * 100;
+  return Math.round(dir < 0 ? 100 - p : p);
+}

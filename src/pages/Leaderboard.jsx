@@ -4,7 +4,7 @@ import { load, usePref } from '../lib/data.js';
 import { statDef, statKeys, splitLabel } from '../lib/catalog.js';
 import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { percentile, peerPool, sortRows, toCSV } from '../lib/stats.js';
-import { Headshot, RoleSeg, SplitSeg, StatPicker, playerHref } from '../components/ui.jsx';
+import { Headshot, RoleSeg, SplitSeg, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
 import { pctColor } from '../lib/themes.js';
 
 const OPS = { '≥': (a, b) => a >= b, '≤': (a, b) => a <= b, '=': (a, b) => Math.abs(a - b) < 1e-9 };
@@ -39,6 +39,7 @@ export default function Leaderboard({ index }) {
   const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState({ key: null, dir: -1 });
   const [shade, setShade] = usePref('lb:shade', true);
+  const [inline, setInline] = usePref('lb:inline', true);
   const [pageSize, setPageSize] = usePref('lb:ps', 50);
   const [page, setPage] = useState(0);
   const [edit, setEdit] = useState(false);
@@ -92,6 +93,7 @@ export default function Leaderboard({ index }) {
           <input placeholder="Filter by name" value={q} onChange={(e) => setQ(e.target.value)} />
           <button type="button" className="btn sm" onClick={() => setFilters([...filters, { key: cols[0] || 'WAR', op: '≥', val: '' }])}>+ Stat filter</button>
           <label className="small row"><input type="checkbox" checked={shade} onChange={(e) => setShade(e.target.checked)} /> Percentile shading</label>
+          <label className="small row"><input type="checkbox" checked={inline} onChange={(e) => setInline(e.target.checked)} /> Show L/R splits</label>
         </div>
         {filters.map((f, i) => (
           <div className="row" key={i}>
@@ -130,7 +132,7 @@ export default function Leaderboard({ index }) {
                   const d = statDef(k, role); const v = r.splits[split]?.[k];
                   let style;
                   if (pools && d.dir && typeof v === 'number') { const p = percentile(pools.get(k)?.get(r.season) || [], v, d.dir < 0); if (p != null) style = { background: `color-mix(in srgb, ${pctColor(p)} 38%, transparent)` }; }
-                  return <td key={k} className="mono" style={style}>{d.f(v)}</td>;
+                  return <td key={k} className="mono" style={style}>{d.f(v)}{inline && split === 'all' && <SubSplits line={r.splits} k={k} d={d} main={v} role={role} />}</td>;
                 })}
               </tr>))}</tbody>
           </table>

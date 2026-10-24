@@ -84,3 +84,6 @@ export function applyUI(ui) {
 export const pctColor = (p) => (p < 50
   ? `color-mix(in srgb, var(--p0) ${Math.round((50 - p) * 2)}%, var(--p50))`
   : `color-mix(in srgb, var(--p100) ${Math.round((p - 50) * 2)}%, var(--p50))`);
+
+/** Cell background for a 0-100 score; undefined when there is no score. */
+export const tint = (p, amt = 34) => (p == null ? undefined : { background: `color-mix(in srgb, ${pctColor(p)} ${amt}%, transparent)` });

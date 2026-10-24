@@ -3,10 +3,10 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useData, usePlayerFile, usePref, useSeason } from '../lib/data.js';
 import { SPLITS, direction, keysOfSeasons, splitLabel, statDef } from '../lib/catalog.js';
 import { SECTIONS, sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
-import { peerPool, percentile } from '../lib/stats.js';
+import { heat, peerPool, percentile } from '../lib/stats.js';
 import { Bubble, Headshot, Seg, SeasonSelect, SplitSeg, StatPicker } from '../components/ui.jsx';
 import { LineChart, Spark, seriesColor } from '../components/charts.jsx';
-import { pctColor } from '../lib/themes.js';
+import { pctColor, tint } from '../lib/themes.js';
 
 const SPECIAL = { summary: 'Key stats', percentiles: 'Percentile rankings', trend: 'Trends', splits: 'Left / right splits' };
 const label = (role, id) => SPECIAL[id] || sectionLabel(role, id);
@@ -190,14 +190,15 @@ function SplitsCard({ role, cur, allKeys, keySet, L, set }) {
   const custom = L.custom[`splits:${secId}`];
   const keys = custom || sectionKeys(role, secId, avail);
   const [edit, setEdit] = useState(false);
+  const [heatOn] = usePref('table:heat', true);
   return (
     <>
       <div className="row"><select value={secId} onChange={(e) => setSecId(e.target.value)}>{sectionIds(role).map((s) => <option key={s} value={s}>{sectionLabel(role, s)}</option>)}</select>
         <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : 'Choose stats'}</button></div>
       {edit && <StatPicker keys={allKeys} role={role} value={keys} onChange={(v) => set({ custom: { ...L.custom, [`splits:${secId}`]: v } })} />}
       <div className="scroll"><table className="t"><thead><tr><th className="l">Stat</th>{SPLITS.map(([s]) => <th key={s}>{splitLabel(s, role)}</th>)}</tr></thead>
-        <tbody>{keys.map((k) => { const d = statDef(k, role); return <tr key={k}><td className="l" title={d.desc}>{d.label}</td>{SPLITS.map(([s]) => <td key={s} className="mono">{d.f(cur.splits[s]?.[k])}</td>)}</tr>; })}</tbody></table></div>
-      <div className="muted small">Not every stat has an L/R split; missing ones show “—”.</div>
+        <tbody>{keys.map((k) => { const d = statDef(k, role); return <tr key={k}><td className="l" title={d.desc}>{d.label}</td>{SPLITS.map(([s]) => <td key={s} className="mono" style={heatOn ? tint(heat(SPLITS.map(([x]) => cur.splits[x]?.[k]), cur.splits[s]?.[k], d.dir)) : undefined}>{d.f(cur.splits[s]?.[k])}</td>)}</tr>; })}</tbody></table></div>
+      <div className="muted small">Not every stat has an L/R split; missing ones show “—”.{heatOn && ' Colors use the theme’s percentile scale across the three splits.'}</div>
     </>
   );
 }
@@ -209,7 +210,11 @@ function DataSection({ role, id, seasons, season, split, file, allKeys, keySet, 
   const keys = L.custom[id] || sectionKeys(role, id, keySet);
   const [edit, setEdit] = useState(false);
   const [rev, setRev] = usePref('table:rev', false);
+  const [withSplits, setWithSplits] = usePref('table:splits', true);
+  const [heatOn, setHeatOn] = usePref('table:heat', true);
   const ys = rev ? [...seasons].reverse() : seasons;
+  const rowSplits = [sp, ...(withSplits ? SPLITS.map(([x]) => x).filter((x) => x !== sp) : [])];
+  const colVals = (sx, k) => seasons.map((y) => file.seasons[y].splits[sx]?.[k]);
   if (!keys.length && !edit) return <div className="muted">No {sectionLabel(role, id)} stats in this player’s data. <button type="button" className="btn sm" onClick={() => setEdit(true)}>Choose stats</button></div>;
   return (
     <>
@@ -219,14 +224,18 @@ function DataSection({ role, id, seasons, season, split, file, allKeys, keySet, 
         </select>
         <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : `Choose stats (${keys.length})`}</button>
         <button type="button" className="btn sm" onClick={() => setRev(!rev)}>{rev ? 'Newest first' : 'Oldest first'}</button>
+        <label className="small row"><input type="checkbox" checked={withSplits} onChange={(e) => setWithSplits(e.target.checked)} /> Show L/R splits</label>
+        <label className="small row"><input type="checkbox" checked={heatOn} onChange={(e) => setHeatOn(e.target.checked)} /> Color coding</label>
         {L.custom[id] && <button type="button" className="btn sm" onClick={() => { const c = { ...L.custom }; delete c[id]; set({ custom: c }); }}>Reset stats</button>}
       </div>
       {edit && <StatPicker keys={allKeys} role={role} value={keys} onChange={(v) => set({ custom: { ...L.custom, [id]: v } })} />}
-      <div className="scroll"><table className="t sticky-first"><thead><tr><th className="l">Season</th><th className="l">Team</th>{keys.map((k) => <th key={k} title={statDef(k, role).desc}>{statDef(k, role).label}</th>)}</tr></thead>
-        <tbody>{ys.map((y) => { const e = file.seasons[y]; return (
-          <tr key={y} className={y === season ? 'sel' : ''} onClick={() => setSeason(y)}><td className="l"><b>{y}</b></td><td className="l">{e.team}</td>
-            {keys.map((k) => <td key={k} className="mono">{statDef(k, role).f(e.splits[sp]?.[k])}</td>)}</tr>); })}</tbody></table></div>
-      <div className="muted small">Click a row to make that the selected season. {sp !== 'all' && 'Splits cover a subset of stats; others show “—”.'}</div>
+      <div className="scroll"><table className="t sticky-first"><thead><tr><th className="l">Season</th><th className="l">Team</th>{withSplits && <th className="l">Split</th>}{keys.map((k) => <th key={k} title={statDef(k, role).desc}>{statDef(k, role).label}</th>)}</tr></thead>
+        <tbody>{ys.map((y) => { const e = file.seasons[y]; return rowSplits.map((sx, ri) => (
+          <tr key={`${y}${sx}`} className={(y === season ? 'sel' : '') + (ri ? ' subrow' : ' toprow')} onClick={() => setSeason(y)}>
+            <td className="l">{ri === 0 && <b>{y}</b>}</td><td className="l">{ri === 0 && e.team}</td>
+            {withSplits && <td className="l"><span className={`splitpill ${sx}`}>{splitLabel(sx, role)}</span></td>}
+            {keys.map((k) => { const d = statDef(k, role); const v = e.splits[sx]?.[k]; return <td key={k} className="mono" style={heatOn ? tint(heat(colVals(sx, k), v, d.dir)) : undefined}>{d.f(v)}</td>; })}</tr>)); })}</tbody></table></div>
+      <div className="muted small">Click a row to make that the selected season. Splits cover a subset of stats; others show “—”.{heatOn && ' Colors compare each season with this player’s other seasons (the theme’s percentile colors: best end vs worst end).'}</div>
     </>
   );
 }
