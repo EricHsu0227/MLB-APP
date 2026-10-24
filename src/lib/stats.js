@@ -37,3 +37,12 @@ export function toCSV(rows, split, keys) {
   const head = ['Name', 'Team', ...keys].map(esc).join(',');
   return [head, ...rows.map((r) => [r.name, r.team, ...keys.map((k) => r.splits[split]?.[k] ?? '')].map(esc).join(','))].join('\n');
 }
+
+/** Value for a player's season line. */
+export const val = (p, split, key) => p?.splits?.[split]?.[key];
+/** Pool of season rows used for percentiles (min PA / IP gates on the chosen split). */
+export function percentileOf(pool, split, key, v, dir) {
+  if (typeof v !== 'number' || !dir) return null;
+  return percentile(pool.map((r) => r.splits[split]?.[key]), v, dir < 0);
+}
+export const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
