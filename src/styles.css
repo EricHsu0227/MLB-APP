@@ -75,3 +75,16 @@ table.t { border-collapse:separate; border-spacing:0; width:100%; font-size:.94e
 .tools-fab { width:52px; height:52px; border-radius:50%; border:0; background:var(--accent); color:var(--accent-fg); font-size:1.4em; cursor:pointer; box-shadow:0 8px 24px #0006 } .tools-fab:hover { filter:brightness(1.1) }
 .pop-tools { width:min(340px,92vw); margin:0; box-shadow:0 20px 50px #0005 } .tool-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; border-bottom:1px dashed var(--line); cursor:pointer }
 @media print { .tools, .nav, .jump { display:none !important } }
+
+/* games, standings, teams */
+.tlogo { display:inline-flex; align-items:center; justify-content:center; vertical-align:middle; flex:none } .team-link { display:inline-flex; align-items:center; gap:7px; color:var(--fg); font-weight:600 }
+.team-tile { display:flex; align-items:center; gap:10px; padding:6px 4px; color:var(--fg); border-radius:calc(var(--radius) - 4px) } .team-tile:hover { background:var(--panel2); text-decoration:none }
+.game { padding:12px 16px } .game-row { display:flex; justify-content:space-between; gap:16px; align-items:center; flex-wrap:wrap; cursor:pointer } .game-teams { flex:1 1 280px; min-width:240px } .gt { display:flex; align-items:center; gap:10px; padding:3px 0 } .gt .team-link { flex:1 } .gt .score { font-size:1.4em; min-width:30px; text-align:right } .gt.lose { opacity:.62 } .gt.win .score { color:var(--accent) }
+.game-meta { display:flex; flex-direction:column; gap:3px; align-items:flex-end; text-align:right } .status { font-weight:700 } .status.live { color:#dc2626 } .status.ppd { color:var(--muted) }
+.game.live { border-left:4px solid #dc2626 } .game.final { border-left:4px solid var(--line) }
+.box-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:12px } @media (max-width:860px) { .box-grid { grid-template-columns:1fr } } .box-grid h4 { margin:8px 0 }
+table.t.sm { font-size:.88em } .linescore th, .linescore td { text-align:center; padding:3px 7px }
+.depth { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px } .depth-h { font-weight:800; padding:4px 0; border-bottom:3px solid var(--accent); margin-bottom:4px } .depth-col:nth-child(3n+2) .depth-h { border-color:var(--c2) } .depth-col:nth-child(3n) .depth-h { border-color:var(--c3) }
+.depth-row { display:flex; align-items:center; gap:7px; padding:3px 0; border-bottom:1px dashed var(--line); flex-wrap:wrap } .depth-row.first { font-weight:700 } .depth-row .small { margin-left:auto }
+.upc { color:var(--c3) } .dnc { color:var(--c2) }
+.depth-row { display:grid; grid-template-columns:22px 1fr; column-gap:8px; row-gap:0 } .depth-row .small { grid-column:2; margin-left:0 }
