@@ -22,24 +22,16 @@ test('bestLineup uses regressed split, respects blocked and minPA', () => {
   assert.equal(battingOrder(ps.slice(0, 3).map((p) => ({ ...p, score: p.all.wOBA }))).length, 3);
 });
 
-import { fitLine, agingDeltas, cumulative, zStats, zDistance, similarity } from '../src/lib/saber.js';
-test('fitLine recovers slope and r', () => {
-  const f = fitLine([1, 2, 3, 4, 5].map((x) => ({ x, y: 2 * x + 1 })));
-  assert.ok(Math.abs(f.slope - 2) < 1e-9 && Math.abs(f.r - 1) < 1e-9);
-  assert.equal(fitLine([{ x: 1, y: 1 }]), null);
+import { ipToOuts, outsToIp, gameScore, sumHitting, sumPitching } from '../src/lib/saber.js';
+test('innings notation and game score', () => {
+  assert.equal(ipToOuts('6.1'), 19); assert.equal(outsToIp(19), '6.1'); assert.equal(ipToOuts(undefined), 0);
+  // 7 IP, 5 H, 2 R/2 ER, 1 BB, 8 K: 50 + 21 + 2*3 + 8 - 10 - 8 - 0 - 1 = 66
+  assert.equal(gameScore({ inningsPitched: '7.0', hits: 5, runs: 2, earnedRuns: 2, baseOnBalls: 1, strikeOuts: 8 }), 66);
 });
-test('agingDeltas averages consecutive-season changes by starting age', () => {
-  const rows = [];
-  for (let i = 0; i < 10; i++) { rows.push({ id: i, season: 2020, age: 25, v: 3 }, { id: i, season: 2021, age: 26, v: 4 }, { id: i, season: 2022, age: 27, v: 4.5 }); }
-  const d = agingDeltas(rows, 5);
-  assert.deepEqual(d.map((x) => [x.age, x.n, x.delta]), [[25, 10, 1], [26, 10, 0.5]]);
-  assert.deepEqual(cumulative(d).map((x) => [x.age, x.v]), [[25, 0], [26, 1], [27, 1.5]]);
-  assert.equal(agingDeltas(rows, 11).length, 0);
-});
-test('similarity: identical rows score 100, far rows score less', () => {
-  const pool = Array.from({ length: 20 }, (_, i) => ({ a: i, b: i * 2, c: (i * 7) % 5 }));
-  const z = zStats(pool, ['a', 'b', 'c']);
-  assert.equal(similarity(zDistance(pool[3], pool[3], z)), 100);
-  assert.ok(similarity(zDistance(pool[3], pool[4], z)) > similarity(zDistance(pool[3], pool[15], z)));
-  assert.equal(zDistance({ a: 1 }, { a: 2 }, z), null);
+test('sumHitting and sumPitching compute rates from counting stats', () => {
+  const h = sumHitting([{ plateAppearances: 5, atBats: 4, hits: 2, doubles: 1, baseOnBalls: 1, strikeOuts: 1 }, { plateAppearances: 4, atBats: 4, hits: 1, homeRuns: 1 }]);
+  assert.equal(h.ab, 8); assert.equal(h.h, 3); assert.ok(Math.abs(h.avg - 0.375) < 1e-9);
+  assert.ok(Math.abs(h.slg - (3 + 1 + 3) / 8) < 1e-9); assert.ok(Math.abs(h.obp - 4 / 9) < 1e-9);
+  const p = sumPitching([{ inningsPitched: '6.1', earnedRuns: 2, hits: 5, baseOnBalls: 1, strikeOuts: 7 }, { inningsPitched: '5.2', earnedRuns: 1 }]);
+  assert.equal(p.outs, 36); assert.equal(p.ip, '12.0'); assert.ok(Math.abs(p.era - 2.25) < 1e-9);
 });

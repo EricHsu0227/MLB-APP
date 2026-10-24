@@ -89,6 +89,15 @@ table.t.sm { font-size:.88em } .linescore th, .linescore td { text-align:center;
 .upc { color:var(--c3) } .dnc { color:var(--c2) }
 .depth-row { display:grid; grid-template-columns:22px 1fr; column-gap:8px; row-gap:0 } .depth-row .small { grid-column:2; margin-left:0 }
 
-.scatter .sdot { fill:var(--accent); opacity:.55; cursor:pointer } .scatter .sdot.hot { fill:var(--c2); opacity:1; stroke:var(--fg); stroke-width:2 } .fitline { stroke:var(--muted); stroke-width:1.6; stroke-dasharray:6 5 }
-.axis.b { font-weight:700 }
 @media (max-width:640px) { .nav nav { order:4; width:100%; flex-wrap:wrap; gap:2px } .nav nav a { padding:5px 9px; font-size:.94em; white-space:nowrap } .appearance { margin-left:auto } }
+/* game page */
+.diamond { display:inline-flex; flex-direction:column; align-items:center; gap:2px } .base { fill:var(--panel2); stroke:var(--muted); stroke-width:1.2 } .base.on { fill:var(--accent); stroke:var(--accent) } .outs { display:flex; gap:3px } .outs i { width:7px; height:7px; border-radius:50%; background:var(--line) } .outs i.on { background:#dc2626 }
+.gtitle { display:flex; align-items:center; gap:24px; justify-content:center; flex-wrap:wrap } .gside { display:flex; align-items:center; gap:12px } .gside .bigscore { font-size:2.6em; font-weight:800 } .gside.lose { opacity:.6 } .gmid { text-align:center }
+.play { border-left:4px solid var(--line); padding:6px 10px; margin:8px 0; background:var(--panel2); border-radius:0 var(--radius) var(--radius) 0 } .play.scoring { border-color:var(--accent) } .play.hr { border-color:var(--c2) } .play .who { font-weight:700 } .play .pitches { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px }
+.pchip { font-size:.74em; padding:1px 7px; border-radius:99px; border:1px solid var(--line); background:var(--panel); white-space:nowrap } .pchip.ball { border-color:var(--c3) } .pchip.strike { border-color:var(--c2) } .pchip.inplay { border-color:var(--c1); font-weight:700 }
+.inn-h { font-weight:800; margin:16px 0 4px; padding-bottom:3px; border-bottom:2px solid var(--accent) }
+.zone-wrap { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start } .zone svg { background:var(--panel2); border-radius:var(--radius); max-width:100%; height:auto } .zonebox { fill:none; stroke:var(--fg); stroke-width:1.5 } .pdot { stroke:var(--panel); stroke-width:1; opacity:.85 }
+.field path, .field line { stroke:var(--line); fill:none; stroke-width:1.5 } .bb-dot { stroke:var(--panel); stroke-width:1 }
+.wp-key { display:flex; gap:14px; font-size:.85em } .wp-key i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px }
+@media print { .game-tabs { display:none } }
+.dotkey { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px }
