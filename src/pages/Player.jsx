@@ -190,7 +190,7 @@ function SplitsCard({ role, cur, allKeys, keySet, L, set }) {
   const custom = L.custom[`splits:${secId}`];
   const keys = custom || sectionKeys(role, secId, avail);
   const [edit, setEdit] = useState(false);
-  const [heatOn] = usePref('table:heat', true);
+  const [heatOn] = usePref('tools:heat', true);
   return (
     <>
       <div className="row"><select value={secId} onChange={(e) => setSecId(e.target.value)}>{sectionIds(role).map((s) => <option key={s} value={s}>{sectionLabel(role, s)}</option>)}</select>
@@ -210,8 +210,8 @@ function DataSection({ role, id, seasons, season, split, file, allKeys, keySet, 
   const keys = L.custom[id] || sectionKeys(role, id, keySet);
   const [edit, setEdit] = useState(false);
   const [rev, setRev] = usePref('table:rev', false);
-  const [withSplits, setWithSplits] = usePref('table:splits', true);
-  const [heatOn, setHeatOn] = usePref('table:heat', true);
+  const [withSplits, setWithSplits] = usePref('tools:splits', true);
+  const [heatOn, setHeatOn] = usePref('tools:heat', true);
   const ys = rev ? [...seasons].reverse() : seasons;
   const rowSplits = [sp, ...(withSplits ? SPLITS.map(([x]) => x).filter((x) => x !== sp) : [])];
   const colVals = (sx, k) => seasons.map((y) => file.seasons[y].splits[sx]?.[k]);
