@@ -88,3 +88,6 @@ table.t.sm { font-size:.88em } .linescore th, .linescore td { text-align:center;
 .depth-row { display:flex; align-items:center; gap:7px; padding:3px 0; border-bottom:1px dashed var(--line); flex-wrap:wrap } .depth-row.first { font-weight:700 } .depth-row .small { margin-left:auto }
 .upc { color:var(--c3) } .dnc { color:var(--c2) }
 .depth-row { display:grid; grid-template-columns:22px 1fr; column-gap:8px; row-gap:0 } .depth-row .small { grid-column:2; margin-left:0 }
+
+.scatter .sdot { fill:var(--accent); opacity:.55; cursor:pointer } .scatter .sdot.hot { fill:var(--c2); opacity:1; stroke:var(--fg); stroke-width:2 } .fitline { stroke:var(--muted); stroke-width:1.6; stroke-dasharray:6 5 }
+.axis.b { font-weight:700 }

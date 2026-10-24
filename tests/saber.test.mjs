@@ -21,3 +21,25 @@ test('bestLineup uses regressed split, respects blocked and minPA', () => {
   assert.deepEqual(bestLineup(ps, { n: 5, blocked: new Set([2]) }).map((p) => p.id), [1, 3]);
   assert.equal(battingOrder(ps.slice(0, 3).map((p) => ({ ...p, score: p.all.wOBA }))).length, 3);
 });
+
+import { fitLine, agingDeltas, cumulative, zStats, zDistance, similarity } from '../src/lib/saber.js';
+test('fitLine recovers slope and r', () => {
+  const f = fitLine([1, 2, 3, 4, 5].map((x) => ({ x, y: 2 * x + 1 })));
+  assert.ok(Math.abs(f.slope - 2) < 1e-9 && Math.abs(f.r - 1) < 1e-9);
+  assert.equal(fitLine([{ x: 1, y: 1 }]), null);
+});
+test('agingDeltas averages consecutive-season changes by starting age', () => {
+  const rows = [];
+  for (let i = 0; i < 10; i++) { rows.push({ id: i, season: 2020, age: 25, v: 3 }, { id: i, season: 2021, age: 26, v: 4 }, { id: i, season: 2022, age: 27, v: 4.5 }); }
+  const d = agingDeltas(rows, 5);
+  assert.deepEqual(d.map((x) => [x.age, x.n, x.delta]), [[25, 10, 1], [26, 10, 0.5]]);
+  assert.deepEqual(cumulative(d).map((x) => [x.age, x.v]), [[25, 0], [26, 1], [27, 1.5]]);
+  assert.equal(agingDeltas(rows, 11).length, 0);
+});
+test('similarity: identical rows score 100, far rows score less', () => {
+  const pool = Array.from({ length: 20 }, (_, i) => ({ a: i, b: i * 2, c: (i * 7) % 5 }));
+  const z = zStats(pool, ['a', 'b', 'c']);
+  assert.equal(similarity(zDistance(pool[3], pool[3], z)), 100);
+  assert.ok(similarity(zDistance(pool[3], pool[4], z)) > similarity(zDistance(pool[3], pool[15], z)));
+  assert.equal(zDistance({ a: 1 }, { a: 2 }, z), null);
+});

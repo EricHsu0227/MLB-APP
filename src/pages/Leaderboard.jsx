@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { load, usePref } from '../lib/data.js';
+import { useRows, usePref } from '../lib/data.js';
 import { statDef, statKeys, splitLabel } from '../lib/catalog.js';
 import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { percentile, peerPool, sortRows, toCSV } from '../lib/stats.js';
@@ -9,20 +9,6 @@ import { pctColor } from '../lib/themes.js';
 
 const OPS = { '≥': (a, b) => a >= b, '≤': (a, b) => a <= b, '=': (a, b) => Math.abs(a - b) < 1e-9 };
 const PAGE = [25, 50, 100, 250];
-
-function useRows(role, from, to, seasons) {
-  const [st, set] = useState({ rows: [], loading: true, error: null, loaded: 0, total: 0 });
-  useEffect(() => {
-    let on = true;
-    const ys = seasons.filter((y) => y >= from && y <= to);
-    set({ rows: [], loading: true, error: null, loaded: 0, total: ys.length });
-    let n = 0;
-    Promise.all(ys.map((y) => load(`${y}/${role}.json`).then((d) => { n++; on && set((s) => ({ ...s, loaded: n })); return d.players.map((p) => ({ ...p, season: y })); })))
-      .then((parts) => on && set((s) => ({ ...s, rows: parts.flat(), loading: false })), (e) => on && set((s) => ({ ...s, error: e, loading: false })));
-    return () => { on = false; };
-  }, [role, from, to, seasons]);
-  return st;
-}
 
 export default function Leaderboard({ index }) {
   const nav = useNavigate();

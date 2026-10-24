@@ -37,3 +37,18 @@ export function usePref(key, init) {
   return [v, set];
 }
 export const headshot = (id, w = 120) => `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_${w},q_auto:best/v1/people/${id}/headshot/67/current`;
+
+/** Every player-season row for a role between two seasons (loads the season files). */
+export function useRows(role, from, to, seasons) {
+  const [st, set] = useState({ rows: [], loading: true, error: null, loaded: 0, total: 0 });
+  useEffect(() => {
+    let on = true;
+    const ys = seasons.filter((y) => y >= from && y <= to);
+    set({ rows: [], loading: true, error: null, loaded: 0, total: ys.length });
+    let n = 0;
+    Promise.all(ys.map((y) => load(`${y}/${role}.json`).then((d) => { n++; on && set((s) => ({ ...s, loaded: n })); return d.players.map((p) => ({ ...p, season: y })); })))
+      .then((parts) => on && set((s) => ({ ...s, rows: parts.flat(), loading: false })), (e) => on && set((s) => ({ ...s, error: e, loading: false })));
+    return () => { on = false; };
+  }, [role, from, to, seasons]);
+  return st;
+}
