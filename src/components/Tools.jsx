@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { usePref } from '../lib/data.js';
+import { CustomizePanel, useColumnCss } from './Customize.jsx';
 
 /** Floating tools button: global toggles that every page reads through usePref. */
 export default function Tools() {
   const [open, setOpen] = useState(false);
+  const [cust, setCust] = useState(false);
+  useColumnCss();
   const [splits, setSplits] = usePref('tools:splits', true);
   const [heat, setHeat] = usePref('tools:heat', true);
   const [shade, setShade] = usePref('tools:shade', true);
@@ -20,6 +23,8 @@ export default function Tools() {
           {row('Color coding', 'player and compare tables', heat, setHeat)}
           {row('Percentile shading', 'leaderboard', shade, setShade)}
           {row('Oldest season first', 'player tables', rev, setRev)}
+          <button type="button" className={'btn sm' + (cust ? ' primary' : '')} style={{ marginTop: 8 }} onClick={() => setCust(!cust)} aria-expanded={cust}>⚙ Customize this page {cust ? '▲' : '▼'}</button>
+          {cust && <CustomizePanel />}
           <div className="row" style={{ marginTop: 8 }}>
             <button type="button" className="btn sm" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>⬆ Top</button>
             <button type="button" className="btn sm" onClick={() => window.print()}>🖨 Print / PDF</button>
