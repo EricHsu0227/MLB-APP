@@ -1,5 +1,7 @@
-node_modules
-dist
-pipeline/cache
 __pycache__
+dist
+node_modules
+pipeline/cache
+public/data/leaders.json
 public/data/players
+public/data/players-index.json
