@@ -20,3 +20,5 @@ Cloudflare dashboard -> Workers & Pages -> Create -> Import a repository -> MLB-
 Build command `npm run build`, deploy command `npx wrangler deploy`. Every push to `main` (including nightly data
 commits) redeploys. Keep the site private: Zero Trust -> Access -> Applications -> add the Worker's URL with an
 "allow my email" policy (FanGraphs / Savant data terms).
+
+The production branch is `main` (Cloudflare builds and deploys it on every push).
