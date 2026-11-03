@@ -1,11 +1,12 @@
 """Re-fetch the Savant baserunning and fielding leaderboards for seasons already built, then rewrite RRAA.
+Also refreshes the Savant leaderboard keys (sv_: OAA, FRV, arm, framing, sprint speed, bat tracking).
 
 Cheaper than rebuilding a season (no pitch-level download). Run by the "Refresh RRAA leaderboards" workflow:
 python pipeline/rraa_refresh.py [2016-2026]
 """
 import json, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-import rraa, rraa_finalize
+import rraa, rraa_finalize, savant_boards
 
 OUT = rraa_finalize.OUT
 
@@ -44,6 +45,7 @@ def main(arg: str | None = None, root=OUT):
         years = [y for y in years if int(a) <= y <= int(b or a)]
     for y in years:
         refresh(y, root)
+        savant_boards.apply(y, root)
     rraa_finalize.main(root)
 
 

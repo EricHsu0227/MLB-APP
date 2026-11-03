@@ -167,7 +167,12 @@ def savant_board(url: str) -> pd.DataFrame:
     raise RuntimeError(f"Savant leaderboard unreadable: {last!r}")
 
 
+BSR_FIRST = 2016  # Savant baserunning run value starts in 2016
+
+
 def savant_bsr(year: int) -> dict[int, float]:
+    if year < BSR_FIRST:
+        return {}
     # season_start/season_end pick the season; startYear/endYear are ignored and return the current season
     d = savant_board("https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?game_type=Regular&n=1&team=&type=Runner"
                      f"&sortColumn=runner_runs_tot&sortDirection=desc&split=no&season_start={year}&season_end={year}&csv=true")

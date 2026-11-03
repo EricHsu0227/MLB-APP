@@ -33,7 +33,33 @@ const BAT_LOW = /^(sc_)?(K%|K%\+|SwStr%|Soft%|Soft%\+|IFFB%|IFFB|GDP|CS|O-Swing%
 const PIT_LOW = /^(RRAA_wOBA|RRAA_Park|ERA|ERA-|FIP|FIP-|xFIP|xFIP-|SIERA|tERA|xERA|kwERA|WHIP|WHIP\+|BB%|BB%\+|BB\/9|BB\/9\+|HR\/9|HR\/9\+|H\/9|H\/9\+|AVG|AVG\+|OBP|SLG|OPS|BABIP|HR\/FB|HRFB%\+|Hard%|Hard%\+|Barrel%|HardHit%|EV|EV90|maxEV|LD%|LD%\+|R|ER|H|HR|BB|HBP|WP|BK|BS|L|E-F|Pull%|sc_BB%|sc_wOBA|sc_xwOBA|sc_Barrel%|sc_HardHit%|sc_EV|sc_EV90|sc_maxEV|wOBA|xwOBA|xAVG|xSLG|Zone%)$/;
 const NEUTRAL = /^(RRAA_PA|lg_wwOBA|lg_wOBA|Season|Age|G|GS|Games|Pos|PA|AB|TPA|TBF|IP|Pitches|BBE|bipCount|Events|playerTeamId|teamid|SeasonMin|SeasonMax|Q|Pull%|Cent%|Oppo%|Med%|FB%|GB\/FB|Tilt|AttackDirection|DepthInBox|DistanceOffPlate|sc_PA|sc_BBE|sc_Pitches|sc_Swing%|sc_LA|LA)$/;
 
+const SV_NAMES = { sv_OAA: 'OAA', sv_FRP: 'Fielding Runs Prevented', sv_FRV: 'Fielding Run Value', sv_FRV_Range: 'FRV Range', sv_FRV_Arm: 'FRV Arm', sv_FRV_Framing: 'FRV Framing', sv_FRV_Block: 'FRV Blocking', sv_FRV_Throw: 'FRV Throwing',
+  sv_Arm: 'Arm Strength', sv_ArmMax: 'Max Arm', sv_Throws: 'Throws', sv_FramingRV: 'Framing Runs', 'sv_Framing%': 'Framing Strike%', sv_FramingPitches: 'Framing Pitches',
+  sv_Sprint: 'Sprint Speed', sv_HPto1B: 'Home to 1B', sv_Bolts: 'Bolts', sv_CompRuns: 'Competitive Runs', sv_SwingRV: 'Bat Tracking RV', 'sv_HardSwing%': 'Hard Swing%', 'sv_SqUpSwing%': 'Squared-up/Swing', 'sv_BlastSwing%': 'Blast/Swing' };
+/** Direction for Savant keys (prefix sv), or undefined when the generic rules apply. */
+function svDirection(key, role) {
+  if (!key.startsWith('sv')) return undefined;
+  const pit = role === 'pit';
+  if (key.startsWith('svA_')) {
+    if (/(%|Velo|Spin|HB|IVB|Ext| Pitches)$/.test(key) && !/(Whiff|PutAway|K|HardHit)%$/.test(key)) return /Velo$/.test(key) && pit ? 1 : 0;
+    if (/RV(\/100)?$/.test(key)) return 1; // pitcher run values are stored with the sign flipped (positive = runs saved)
+    if (/(Whiff|PutAway|K)%$/.test(key)) return pit ? 1 : -1;
+    return pit ? -1 : 1; // BA, SLG, wOBA, xwOBA, HardHit%
+  }
+  if (key.startsWith('svST_')) return /RV$/.test(key) ? 1 : 0;
+  if (key.startsWith('svBB_')) {
+    if (/(Pull|Straight|Oppo)%$/.test(key)) return 0;
+    const good = /(Barrel|Solid|Flare\/Burner|Sweet Spot|Pull Air)%$/.test(key);
+    return (good ? 1 : -1) * (pit ? -1 : 1);
+  }
+  if (key === 'sv_HPto1B') return -1;
+  if (/^sv_(Throws|FramingPitches|CompRuns)$/.test(key)) return 0;
+  return 1;
+}
+
 export function direction(key, role = 'bat') {
+  const sv = svDirection(key, role);
+  if (sv !== undefined) return sv;
   if (NEUTRAL.test(key) || /^(pi|pfx)/.test(key)) return 0;
   if (role === 'pit') {
     if (PIT_LOW.test(key)) return -1;
@@ -43,6 +69,13 @@ export function direction(key, role = 'bat') {
 }
 
 function pickFormat(key) {
+  if (key.startsWith('sv')) {
+    if (/%$|\/Swing%?$/.test(key) || key === 'sv_SqUpSwing%') return PCT;
+    if (/ (BA|SLG|wOBA|xwOBA)$/.test(key)) return RATE3;
+    if (/RV\/100$|HPto1B$/.test(key)) return D2;
+    if (/ (Spin|Pitches)$|^sv_(OAA|Throws|Bolts|CompRuns|FramingPitches)$/.test(key)) return INT;
+    return D1;
+  }
   if (RATE3_KEYS.has(key)) return RATE3;
   if (D2_KEYS.has(key)) return D2;
   if (D1_KEYS.has(key)) return D1;
@@ -58,8 +91,8 @@ export function statDef(key, role = 'bat') {
   const calc = key.startsWith('sc_');
   const base = key.replace(/^sc_/, '');
   const f = pickFormat(key);
-  let label = LABELS[key] || key;
-  if (!LABELS[key]) for (const [re, pre, suf] of PREFIX) if (re.test(key)) { label = pre + key.replace(re, '') + suf; break; }
+  let label = LABELS[key] || SV_NAMES[key] || (key.startsWith('svA_') ? key.slice(4) : key.startsWith('svST_') ? key.slice(5) : key.startsWith('svBB_') ? key.slice(5) : key);
+  if (!LABELS[key] && !key.startsWith('sv')) for (const [re, pre, suf] of PREFIX) if (re.test(key)) { label = pre + key.replace(re, '') + suf; break; }
   return { key, calc, label, f, pct: f === PCT, dir: direction(key, role), lowGood: direction(key, role) < 0, desc: GLOSS[key] || GLOSS[base] || '', group: calc ? 'Calculated' : '' };
 }
 

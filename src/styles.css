@@ -160,3 +160,14 @@ main { padding:12px 14px } .panel { padding:12px } .panel.card h3 { margin-botto
 }
 .player-page.team-painted .tabs button.on, .player-page .ptabs button.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent) }
 .gl-chart .chart { max-height:210px }
+/* Savant tabs on the player page */
+.pdot-key { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle }
+.chart.sq { max-width:360px; max-height:360px; display:block; margin:6px auto }
+.chart .ztext { fill:#fff; font-size:12px; font-weight:700; paint-order:stroke; stroke:#0007; stroke-width:2px }
+.field .bb-dot { stroke:#0004; stroke-width:.4 }
+.rvbars { display:flex; flex-direction:column; gap:5px; margin-top:6px } .rvbar { display:grid; grid-template-columns:34px 1fr 52px; gap:8px; align-items:center; font-size:.85em } .rvbar b { text-align:right }
+.rvbar .track { position:relative; height:12px; background:var(--panel2); border-radius:4px } .rvbar .track::after { content:''; position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:var(--muted) } .rvbar .track i { position:absolute; top:0; bottom:0; border-radius:3px }
+.stack { display:flex; height:18px; border-radius:5px; overflow:hidden; background:var(--panel2); flex:1 } .stack i { display:flex; align-items:center; justify-content:center; font-style:normal; font-size:.72em; font-weight:700; color:#fff; text-shadow:0 1px 1px #0006; white-space:nowrap; overflow:hidden }
+.stack.big { height:28px; margin:8px 0 }
+.bbrow { display:grid; grid-template-columns:120px 1fr; gap:8px; align-items:center; margin:5px 0; font-size:.88em }
+@media (max-width: 640px) { .bbrow { grid-template-columns:92px 1fr } .chart.sq { max-width:100% } }
