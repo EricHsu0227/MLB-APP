@@ -1,7 +1,7 @@
 """Build static JSON: python pipeline/build.py 2025 [--role bat|pit]. Output: public/data/<season>/<role>.json"""
 import json, math, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-import fangraphs, rraa, rraa_finalize, savant, statcast
+import fangraphs, rraa, rraa_finalize, savant, savant_boards, savant_sections, statcast
 
 OUT = pathlib.Path(__file__).resolve().parents[1] / "public" / "data"
 
@@ -49,6 +49,20 @@ def fg_table(season: int, role: str) -> dict:
         return prev
 
 
+def write_sections(season: int, pitches, roles=("bat", "pit")):
+    """Savant player-page sections (from pitches) plus Savant percentile ranks, sharded by player id."""
+    d = OUT / str(season)
+    for role in roles:
+        secs = savant_sections.player_sections(pitches, role) if pitches is not None else {}
+        for pid, pct in savant_boards.percentiles(season, role).items():
+            secs.setdefault(pid, {})["pct"] = pct
+        if not secs:
+            continue
+        for i, shard in savant_sections.shards(secs).items():
+            (d / f"savant-{role}-{i}.json").write_text(json.dumps(shard, separators=(",", ":")))
+        print(f"{season} {role}: Savant sections for {len(secs)} players")
+
+
 def main(season: int, roles=("bat", "pit")):
     pitches = None
     if season >= savant.FIRST_STATCAST:
@@ -66,6 +80,9 @@ def main(season: int, roles=("bat", "pit")):
     if have and d.exists():
         (d / "rraa_parts.json").write_text(json.dumps(rraa.season_parts(pitches, season), separators=(",", ":")))
         rraa_finalize.main(OUT)
+    if d.exists():
+        savant_boards.apply(season, OUT)
+        write_sections(season, pitches if have else None, roles)
     idx = OUT / "index.json"
     seasons = sorted({int(p.name) for p in OUT.iterdir() if p.is_dir() and p.name.isdigit()})
     idx.write_text(json.dumps({"seasons": seasons, "statcastFrom": savant.FIRST_STATCAST}))
