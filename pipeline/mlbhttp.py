@@ -16,8 +16,8 @@ def get(url, params=None, min_interval=2.0, tries=4, **kw):
         r = requests.get(url, params=params, headers=HEADERS, timeout=90, **kw)
         if r.status_code == 200:
             return r
-        if r.status_code in (429, 500, 502, 503, 504):
-            time.sleep(10 * (i + 1))
+        if r.status_code in (403, 429, 500, 502, 503, 504):  # 403: FanGraphs' bot wall, usually passes on retry
+            time.sleep(30 * (i + 1))
             continue
         r.raise_for_status()
     r.raise_for_status()
