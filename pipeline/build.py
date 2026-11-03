@@ -23,6 +23,32 @@ def merge(fg: dict, sc: dict) -> list[dict]:
     return rows
 
 
+def previous_fg(season: int, role: str) -> dict:
+    """FanGraphs stats already published for this season (every key except our sc_/RRAA ones)."""
+    f = OUT / str(season) / f"{role}.json"
+    if not f.exists():
+        return {}
+    ours = lambda k: k.startswith("sc_") or k in rraa_finalize.KEYS  # noqa: E731
+    out = {}
+    for p in json.loads(f.read_text())["players"]:
+        e = {"name": p.get("name"), "team": p.get("team")}
+        for sp, st in p["splits"].items():
+            fgs = {k: v for k, v in st.items() if not ours(k)}
+            if fgs:
+                e[sp] = fgs
+        out[p["id"]] = e
+    return out
+
+
+def fg_table(season: int, role: str) -> dict:
+    try:
+        return fangraphs.table(season, role)
+    except Exception as e:  # noqa: BLE001  FanGraphs sometimes blocks CI runners; keep what we published before
+        prev = previous_fg(season, role)
+        print(f"[warn] FanGraphs {season} {role} failed ({e}); reusing {len(prev)} published rows")
+        return prev
+
+
 def main(season: int, roles=("bat", "pit")):
     pitches = None
     if season >= savant.FIRST_STATCAST:
@@ -30,7 +56,7 @@ def main(season: int, roles=("bat", "pit")):
     have = pitches is not None and len(pitches) > 0
     d = OUT / str(season)
     for role in roles:
-        fg = fangraphs.table(season, role)
+        fg = fg_table(season, role)
         sc = statcast.calc_player_table(pitches, role) if have else {}
         if not fg and not sc:  # season not started yet (e.g. nightly run in January): don't publish an empty season
             print(f"{season} {role}: no data yet, skipped")
