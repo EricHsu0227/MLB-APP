@@ -1,7 +1,6 @@
 import { NavLink, Route, Routes, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useData } from './lib/data.js';
 import { PlayerSearch } from './components/ui.jsx';
-import Tools from './components/Tools.jsx';
 import Appearance, { useAppearance } from './components/Appearance.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import Player from './pages/Player.jsx';
@@ -40,7 +39,6 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>)}
       </main>
-      <Tools />
       <footer className="foot muted small">Data: FanGraphs and Baseball Savant, plus Statcast stats calculated from pitch-level data. For personal use.</footer>
     </>
   );

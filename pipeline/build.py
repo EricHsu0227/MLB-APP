@@ -72,6 +72,9 @@ def main(season: int, roles=("bat", "pit")):
         secs[role] = savant_sections.player_sections(pitches, role) if have else {}
         for pid, s in secs[role].items():  # table-friendly Savant numbers become season stat keys (prefix sv)
             sc.setdefault(pid, {}).setdefault("all", {}).update({"__sv__" + k: v for k, v in savant_sections.season_keys(s, role).items()})
+        for pid, by in (savant_sections.hand_keys(pitches, role) if have else {}).items():  # the same keys vs LHP/RHP (LHB/RHB)
+            for sp, keys in by.items():
+                sc.setdefault(pid, {}).setdefault(sp, {}).update({"__sv__" + k: v for k, v in keys.items()})
         if not fg and not sc:  # season not started yet (e.g. nightly run in January): don't publish an empty season
             print(f"{season} {role}: no data yet, skipped")
             continue

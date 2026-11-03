@@ -309,11 +309,14 @@ def finalize(parts: dict[int, dict]) -> dict[int, dict[str, dict]]:
                 park = park_sum(x["parks"], -1)
                 runs = x["raa"] + park + x["lg"]
                 row[sp] = {"wwOBA": x["w"], "RRAA_Bat": runs, "RRAA_wRAA": x["raa"], "RRAA_Park": park, "RRAA_Lg": x["lg"], "RRAA_PA": x["PA"]}
+                bsr, fld = e.get("bsr", 0.0), e.get("fld", 0.0)
                 if sp == "all":
-                    bsr, fld = e.get("bsr", 0.0), e.get("fld", 0.0)
                     row[sp].update({"RRAA_BsR": bsr, "RRAA_Fld": fld, "RRAA": runs + bsr + fld, "lg_wwOBA": p["lg_wwoba"]})
                     if "frv" in e:
                         row[sp]["RRAA_FRV"] = e["frv"]
+                else:  # baserunning and fielding have no platoon split: share them by PA so vsL + vsR = all
+                    share = x["PA"] / e["all"]["PA"] if e.get("all", {}).get("PA") else 0.0
+                    row[sp].update({"RRAA_BsR": bsr * share, "RRAA_Fld": fld * share, "RRAA": runs + (bsr + fld) * share, "lg_wwOBA": p["lg_wwoba"]})
             bat[int(pid)] = row
         for pid, e in p["pit"].items():
             pit[int(pid)] = {sp: {"RRAA": x["raa"] + park_sum(x["parks"], 1), "RRAA_wOBA": x["w"], "RRAA_wRAA": x["raa"],

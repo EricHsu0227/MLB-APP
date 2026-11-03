@@ -105,6 +105,12 @@ def test_scale_and_upgrade():
     a, b = rraa.finalize({2025: p2}), rraa.finalize({2025: v1})
     pid = next(iter(a[2025]["bat"]))
     assert abs(a[2025]["bat"][pid]["all"]["RRAA"] - b[2025]["bat"][pid]["all"]["RRAA"]) < 1e-6
+    # hitter platoon splits carry RRAA too, with baserunning/fielding shared by PA so the splits add up
+    p2["bat"][str(pid)]["bsr"], p2["bat"][str(pid)]["fld"] = 3.0, -1.0
+    r = rraa.finalize({2025: p2})[2025]["bat"][pid]
+    if "vsL" in r and "vsR" in r and r["vsL"]["RRAA_PA"] + r["vsR"]["RRAA_PA"] == r["all"]["RRAA_PA"]:
+        assert abs(r["vsL"]["RRAA_BsR"] + r["vsR"]["RRAA_BsR"] - 3.0) < 1e-6
+    assert all("RRAA" in r[sp] for sp in r)
 
 
 def test_fld_team_adjust():

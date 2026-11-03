@@ -42,5 +42,14 @@ def test_sections():
     json.dumps(S.shards({1: bat, 9: pit}))  # serializable
 
 
+def test_hand_keys():
+    f = frame()
+    f.loc[f.index % 2 == 0, "p_throws"] = "R"
+    hk = S.hand_keys(f, "bat")[1]
+    assert set(hk) == {"vsL", "vsR"} and "svA_FF%" in hk["vsL"] and "svST_RV" in hk["vsR"]
+    pk = S.hand_keys(f, "pit")[9]
+    assert set(pk) == {"vsR"}  # every batter in the frame stands R
+
+
 if __name__ == "__main__":
-    test_sections(); print("ok")
+    test_sections(); test_hand_keys(); print("ok")

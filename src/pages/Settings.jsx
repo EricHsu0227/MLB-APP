@@ -1,29 +1,50 @@
 import { useMemo, useState } from 'react';
 import { useSeason, usePref } from '../lib/data.js';
 import { statDef, statKeys } from '../lib/catalog.js';
-import { DEFAULT_FAVS, useFavs } from '../lib/favs.js';
+import { DEFAULT_FAVS, MY_GROUPS, useFavs, useGroup } from '../lib/favs.js';
+import { sectionLabel } from '../lib/sections.js';
 import { StatPicker } from '../components/ui.jsx';
 
-function Favs({ role, season }) {
-  const [favs, setFavs] = useFavs(role);
-  const { data } = useSeason(season, role);
-  const keys = useMemo(() => (data ? statKeys(data.players.slice(0, 3000)) : []), [data]);
-  const [open, setOpen] = useState(false);
-  const move = (i, d) => { const a = [...favs]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setFavs(a); };
+function ListEditor({ role, title, note, keys, value, onChange, reset, startOpen, bare }) {
+  const [open, setOpen] = useState(!!startOpen);
+  const move = (i, d) => { const a = [...value]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; onChange(a); };
   return (
-    <section className="panel card">
-      <h3>{role === 'bat' ? 'Hitter' : 'Pitcher'} stats that matter most</h3>
+    <div className="list-editor">
+      {title && <h4>{title}</h4>}
+      {note && <div className="muted small" style={{ marginBottom: 6 }}>{note}</div>}
       <div className="fav-list">
-        {favs.map((k, i) => (
+        {value.map((k, i) => (
           <span className="fav" key={k} title={statDef(k, role).desc}><b>{i + 1}</b> {statDef(k, role).label}
-            <button type="button" aria-label="Move earlier" onClick={() => move(i, -1)}>‹</button><button type="button" aria-label="Move later" onClick={() => move(i, 1)}>›</button><button type="button" aria-label="Remove" onClick={() => setFavs(favs.filter((x) => x !== k))}>✕</button></span>))}
-        {!favs.length && <span className="muted">No favorites yet. Pick some below.</span>}
+            <button type="button" aria-label="Move earlier" onClick={() => move(i, -1)}>‹</button><button type="button" aria-label="Move later" onClick={() => move(i, 1)}>›</button><button type="button" aria-label="Remove" onClick={() => onChange(value.filter((x) => x !== k))}>✕</button></span>))}
+        {!value.length && <span className="muted">Nothing picked yet.</span>}
       </div>
       <div className="row" style={{ marginTop: 8 }}>
-        <button type="button" className="btn sm" onClick={() => setOpen(!open)}>{open ? 'Done' : '+ Add or remove stats'}</button>
-        <button type="button" className="btn sm" onClick={() => setFavs(DEFAULT_FAVS[role])}>Reset to default</button>
+        {!bare && <button type="button" className="btn sm" onClick={() => setOpen(!open)}>{open ? 'Done' : '+ Add or remove stats'}</button>}
+        <button type="button" className="btn sm" onClick={reset}>Reset to default</button>
       </div>
-      {open && <StatPicker keys={keys} role={role} value={favs} onChange={setFavs} max={40} />}
+      {(open || bare) && <StatPicker keys={keys} role={role} value={value} onChange={onChange} max={60} />}
+    </div>
+  );
+}
+
+/** One "My stats" list: 'favs' (the main list) or a group id (playerValue / realAbility). */
+export function MyStatsEditor({ role, season, group = 'favs', bare }) {
+  const { data } = useSeason(season, role);
+  const keys = useMemo(() => (data ? statKeys(data.players.slice(0, 3000)) : []), [data]);
+  const [favs, setFavs] = useFavs(role);
+  const [gk, setG, resetG] = useGroup(role, group === 'favs' ? MY_GROUPS[0] : group);
+  const isFav = group === 'favs';
+  const note = bare ? (isFav ? 'Your main stats. Reorder with ‹ ›, remove with ✕, or add more. They are also the defaults on player pages and Compare.' : `Stats in ${sectionLabel(role, group)}. The player page uses the same list.`) : null;
+  return <ListEditor role={role} keys={keys} note={note} bare={bare} value={isFav ? favs : gk} onChange={isFav ? setFavs : setG} reset={isFav ? () => setFavs(DEFAULT_FAVS[role]) : resetG} />;
+}
+
+function MyStats({ role, season }) {
+  return (
+    <section className="panel card">
+      <h3>My stats: {role === 'bat' ? 'hitters' : 'pitchers'}</h3>
+      <h4>Main list</h4>
+      <MyStatsEditor role={role} season={season} />
+      {MY_GROUPS.map((g) => <div key={g} style={{ marginTop: 14 }}><h4>{sectionLabel(role, g)}</h4><MyStatsEditor role={role} season={season} group={g} /></div>)}
     </section>
   );
 }
@@ -38,11 +59,11 @@ export default function Settings({ index }) {
     <>
       <section className="panel">
         <h2 style={{ margin: 0 }}>Settings</h2>
-        <p className="muted" style={{ margin: '4px 0 0' }}>Pick the stats you care about most and the app leans toward them: they become the default columns on the leaderboard, the stats on a player’s Overview and Compare, and they sort first in every stat table, with the sections that contain the most of them listed first.</p>
+        <p className="muted" style={{ margin: '4px 0 0' }}>Pick the stats you care about most and the app leans toward them. My stats has a main list plus two groups, Player value and Real ability, which show up as their own selections on the leaderboard and player pages. The main list's stats are the default columns on the leaderboard, the stats on a player’s Overview and Compare, and they sort first in every stat table, with the sections that contain the most of them listed first.</p>
       </section>
       <div className="grid" style={{ '--cols': 2 }}>
-        <Favs role="bat" season={season} />
-        <Favs role="pit" season={season} />
+        <MyStats role="bat" season={season} />
+        <MyStats role="pit" season={season} />
         <section className="panel card">
           <h3>Display</h3>
           <Toggle k="tools:splits" init label="L/R splits" hint="inline in tables" />
