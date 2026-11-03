@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { usePref } from './data.js';
-import { sectionIds, sectionKeys } from './sections.js';
+import { SECTIONS, sectionIds, sectionKeys } from './sections.js';
 
 /** The stats the person cares about most, in priority order. Set in Settings; every page leans toward them. */
 export const DEFAULT_FAVS = {
@@ -19,4 +19,14 @@ export function useSectionOrder(role, avail, favs) {
     const score = (s) => { const ks = new Set(sectionKeys(role, s, avail)); return favs.reduce((n, k, i) => n + (ks.has(k) ? 1 + (favs.length - i) / 100 : 0), 0); };
     return [...ids].sort((a, b) => score(b) - score(a));
   }, [role, avail, favs]);
+}
+
+/** "My stats" groups (Player value, Real ability): editable stat lists shared by Settings, the leaderboard and player pages. */
+export const MY_GROUPS = ['playerValue', 'realAbility'];
+export function useGroup(role, id) {
+  const [edits, setEdits] = usePref(`p3:edits:${role}`, {});
+  const keys = edits[id] || SECTIONS[role][id]?.keys || [];
+  const set = (v) => setEdits({ ...edits, [id]: v });
+  const reset = () => { const e = { ...edits }; delete e[id]; setEdits(e); };
+  return [keys, set, reset, !!edits[id]];
 }

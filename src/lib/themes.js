@@ -61,12 +61,18 @@ export const THEMES = [
 ];
 
 export const FONTS = [['Theme default', ''], ['Sans', sans], ['Serif', serif], ['Mono', mono]];
-export const DEFAULT_UI = { theme: 'black', accent: '', radius: -1, font: '', fontSize: 14, density: 'cozy', cards: 'default' };
+export const DEFAULT_UI = { theme: 'black', accent: '', accent2: '', radius: -1, font: '', fontSize: 14, density: 'cozy', cards: 'default' };
 
 const prefersDark = () => { try { return matchMedia('(prefers-color-scheme: dark)').matches; } catch { return false; } };
 export function resolveTheme(id) {
   if (id === 'auto' || !THEMES.some((t) => t.id === id)) return THEMES.find((t) => t.id === (prefersDark() ? 'dark' : 'light'));
   return THEMES.find((t) => t.id === id);
+}
+/** Black or white text, whichever reads better on a hex color. */
+export function textOn(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return '#fff';
+  const n = parseInt(m[1], 16); const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.32 ? '#111' : '#fff';
 }
 const DENSITY = { compact: ['8px', '3px 7px'], cozy: ['14px', '5px 9px'], roomy: ['20px', '8px 12px'] };
 
@@ -75,7 +81,8 @@ export function applyUI(ui) {
   const t = resolveTheme(u.theme);
   const r = document.documentElement;
   const vars = { ...t.v };
-  if (u.accent) vars['--accent'] = u.accent;
+  if (u.accent) { vars['--accent'] = u.accent; vars['--c1'] = u.accent; vars['--accent-fg'] = textOn(u.accent); }
+  if (u.accent2) vars['--c2'] = u.accent2;
   if (u.radius >= 0) vars['--radius'] = u.radius + 'px';
   if (u.font) { vars['--font'] = u.font; vars['--head-font'] = u.font; }
   vars['--fs'] = u.fontSize + 'px';

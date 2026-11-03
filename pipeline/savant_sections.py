@@ -282,6 +282,22 @@ def player_sections(pitches: pd.DataFrame, role: str, min_pitches: int = 50) -> 
     return out
 
 
+def hand_keys(pitches: pd.DataFrame, role: str, min_pitches: int = 30) -> dict[int, dict]:
+    """{id: {"vsL": keys, "vsR": keys}}: the arsenal, swing/take and batted-ball season keys against each hand."""
+    if pitches is None or pitches.empty:
+        return {}
+    d = prepare(pitches)
+    id_col, hand_col = ("batter", "p_throws") if role == "bat" else ("pitcher", "stand")
+    out: dict[int, dict] = {}
+    for (pid, h), g in d.groupby([id_col, hand_col]):
+        if h not in ("L", "R") or len(g) < min_pitches:
+            continue
+        keys = season_keys({"ars": _arsenal(g, role), "st": _swing_take(g, role), "bb": _batted(g)}, role)
+        if keys:
+            out.setdefault(int(pid), {})["vs" + h] = keys
+    return out
+
+
 def shards(sections: dict[int, dict]) -> dict[int, dict]:
     out: dict[int, dict] = {i: {} for i in range(SHARDS)}
     for pid, s in sections.items():

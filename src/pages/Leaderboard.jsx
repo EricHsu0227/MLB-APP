@@ -4,9 +4,11 @@ import { useRows, usePref } from '../lib/data.js';
 import { statDef, statKeys, splitLabel } from '../lib/catalog.js';
 import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { percentile, peerPool, sortRows, toCSV } from '../lib/stats.js';
-import { Headshot, RoleSeg, SplitSeg, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
+import { Headshot, Seg, SplitSeg, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
+import RraaBoard from '../components/RraaBoard.jsx';
+import { MyStatsEditor } from './Settings.jsx';
 import { pctColor } from '../lib/themes.js';
-import { favFirst, useFavs, useSectionOrder } from '../lib/favs.js';
+import { MY_GROUPS, favFirst, useFavs, useGroup, useSectionOrder } from '../lib/favs.js';
 
 const OPS = { '≥': (a, b) => a >= b, '≤': (a, b) => a <= b, '=': (a, b) => Math.abs(a - b) < 1e-9 };
 const PAGE = [25, 50, 100, 250];
@@ -14,7 +16,8 @@ const PAGE = [25, 50, 100, 250];
 export default function Leaderboard({ index }) {
   const nav = useNavigate();
   const seasons = index.seasons;
-  const [role, setRole] = usePref('lb:role', 'bat');
+  const [roleSel, setRole] = usePref('lb:role', 'bat');
+  const role = roleSel === 'rraa' ? 'bat' : roleSel;
   const [from, setFrom] = usePref('lb:from', seasons.at(-1));
   const [to, setTo] = usePref('lb:to', seasons.at(-1));
   const [split, setSplit] = usePref('lb:split', 'all');
@@ -36,12 +39,16 @@ export default function Leaderboard({ index }) {
   const allKeys = useMemo(() => statKeys(all.length > 3000 ? all.slice(0, 3000) : all), [all]);
   const keySet = useMemo(() => new Set(allKeys), [allKeys]);
   const [favs] = useFavs(role);
-  const secOrder = useSectionOrder(role, keySet, favs);
-  const secKeys = sec === 'custom' ? (custom || []) : sec === 'favs' ? favs.filter((k) => keySet.has(k)) : favFirst(sectionKeys(role, sec, keySet), favs);
+  const secOrder = useSectionOrder(role, keySet, favs).filter((s) => !MY_GROUPS.includes(s));
+  const [pv] = useGroup(role, 'playerValue');
+  const [ra] = useGroup(role, 'realAbility');
+  const groupKeys = { playerValue: pv, realAbility: ra };
+  const mine = sec === 'favs' || MY_GROUPS.includes(sec);
+  const secKeys = sec === 'custom' ? (custom || []) : sec === 'favs' ? favs.filter((k) => keySet.has(k)) : groupKeys[sec] ? groupKeys[sec].filter((k) => keySet.has(k)) : favFirst(sectionKeys(role, sec, keySet), favs);
   const cols = secKeys.length > 80 && sec === 'all' ? secKeys.slice(0, 80) : secKeys;
   const teams = useMemo(() => [...new Set(all.map((r) => r.team).filter(Boolean))].sort(), [all]);
   const multi = lo !== hi;
-  const defSort = sec === 'favs' ? cols[0] : cols.includes('WAR') ? 'WAR' : cols[0];
+  const defSort = mine ? cols[0] : cols.includes('WAR') ? 'WAR' : cols[0];
 
   const rows = useMemo(() => {
     let r = peerPool(all, split, role === 'bat' ? { minPA: min } : { minIP: min });
@@ -72,19 +79,19 @@ export default function Leaderboard({ index }) {
   return (
     <>
       <section className="panel toolbar">
-        <div className="row"><RoleSeg value={role} onChange={(r) => { setRole(r); setSec('favs'); setSort({ key: null, dir: -1 }); setFilters([]); setPicked({}); }} />
+        <div className="row"><Seg value={roleSel} options={[['bat', 'Hitters'], ['pit', 'Pitchers'], ['rraa', 'RRAA']]} onChange={(r) => { setRole(r); setSec('favs'); setSort({ key: null, dir: -1 }); setFilters([]); setPicked({}); }} />
           <label className="row small">Seasons <select value={from} onChange={(e) => { const v = +e.target.value; setFrom(v); if (v > to) setTo(v); }}>{seasons.map((y) => <option key={y}>{y}</option>)}</select>
             to <select value={to} onChange={(e) => { const v = +e.target.value; setTo(v); if (v < from) setFrom(v); }}>{seasons.map((y) => <option key={y}>{y}</option>)}</select></label>
           <SplitSeg role={role} value={split} onChange={setSplit} /></div>
         <div className="row">
-          <label className="small">Min {role === 'bat' ? 'PA' : 'IP'} <input type="number" style={{ width: 70 }} value={min} onChange={(e) => setMin(+e.target.value)} /></label>
+          {roleSel !== 'rraa' && <label className="small">Min {role === 'bat' ? 'PA' : 'IP'} <input type="number" style={{ width: 70 }} value={min} onChange={(e) => setMin(+e.target.value)} /></label>}
           <select value={team} onChange={(e) => setTeam(e.target.value)}><option value="">All teams</option>{teams.map((t) => <option key={t}>{t}</option>)}</select>
           <input placeholder="Filter by name" value={q} onChange={(e) => setQ(e.target.value)} />
-          <button type="button" className="btn sm" onClick={() => setFilters([...filters, { key: cols[0] || 'WAR', op: '≥', val: '' }])}>+ Stat filter</button>
+          {roleSel !== 'rraa' && <button type="button" className="btn sm" onClick={() => setFilters([...filters, { key: cols[0] || 'WAR', op: '≥', val: '' }])}>+ Stat filter</button>}
           <label className="small row"><input type="checkbox" checked={shade} onChange={(e) => setShade(e.target.checked)} /> Percentile shading</label>
-          <label className="small row"><input type="checkbox" checked={inline} onChange={(e) => setInline(e.target.checked)} /> Show L/R splits</label>
+          {roleSel !== 'rraa' && <label className="small row"><input type="checkbox" checked={inline} onChange={(e) => setInline(e.target.checked)} /> Show L/R splits</label>}
         </div>
-        {filters.map((f, i) => (
+        {roleSel !== 'rraa' && filters.map((f, i) => (
           <div className="row" key={i}>
             <select value={f.key} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))}>{allKeys.map((k) => <option key={k} value={k}>{statDef(k, role).label}</option>)}</select>
             <select value={f.op} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, op: e.target.value } : x)))}>{Object.keys(OPS).map((o) => <option key={o}>{o}</option>)}</select>
@@ -92,13 +99,15 @@ export default function Leaderboard({ index }) {
             <button type="button" className="btn sm" onClick={() => setFilters(filters.filter((_, j) => j !== i))}>✕</button>
           </div>))}
       </section>
+      {roleSel === 'rraa' ? <RraaBoard seasons={seasons} lo={lo} hi={hi} split={split} team={team} q={q} /> : <>
 
       <div className="tabs">
         <button type="button" className={sec === 'favs' ? 'on' : ''} onClick={() => { setSec('favs'); setSort({ key: null, dir: -1 }); }}>★ My stats</button>
+        {MY_GROUPS.map((g) => <button type="button" key={g} className={sec === g ? 'on' : ''} onClick={() => { setSec(g); setSort({ key: null, dir: -1 }); }}>★ {sectionLabel(role, g)}</button>)}
         {secOrder.map((s) => <button type="button" key={s} className={sec === s ? 'on' : ''} onClick={() => { setSec(s); setSort({ key: null, dir: -1 }); }}>{sectionLabel(role, s)}</button>)}
         <button type="button" className={sec === 'custom' ? 'on' : ''} onClick={() => { if (!custom) setCustom(cols.length ? cols : ['WAR']); setSec('custom'); setEdit(true); }}>★ Custom</button>
-        <button type="button" onClick={() => nav('/settings')} title="Choose your favorite stats">⚙ Edit my stats</button>
       </div>
+      {mine && edit && <section className="panel"><MyStatsEditor role={role} season={hi} group={sec} bare /></section>}
       {(sec === 'custom' || edit) && sec === 'custom' && <section className="panel"><StatPicker keys={allKeys} role={role} value={custom || []} onChange={setCustom} /></section>}
 
       <section className="panel nopad">
@@ -106,18 +115,19 @@ export default function Leaderboard({ index }) {
           <span className="muted small">{loading ? `Loading ${loaded}/${total} seasons…` : `${rows.length.toLocaleString()} ${multi ? 'player-seasons' : 'players'} · ${splitLabel(split, role)} · ${cols.length} columns`}</span>
           <span className="row">
             {sel.length > 0 && <button type="button" className="btn primary sm" onClick={() => nav(`/compare?p=${sel.slice(0, 8).map((k) => { const [id, y] = k.split(':'); return `${role}:${id}:${y}`; }).join(',')}`)}>Compare {Math.min(sel.length, 8)} selected</button>}
+            {mine && <button type="button" className={'btn sm' + (edit ? ' primary' : '')} onClick={() => setEdit(!edit)}>{edit ? 'Done' : `✎ Edit ${sec === 'favs' ? 'my stats' : sectionLabel(role, sec).toLowerCase()}`}</button>}
             <button type="button" className="btn sm" onClick={download}>CSV</button></span>
         </div>
         {error && <div className="pad">Couldn’t load: {String(error.message)}</div>}
         <div className="scroll tall">
           <table className="t lb sticky-2">
             <thead><tr><th className="c"><input type="checkbox" aria-label="select page" checked={shown.length > 0 && shown.every((r) => picked[rowKey(r)])} onChange={(e) => setPicked({ ...picked, ...Object.fromEntries(shown.map((r) => [rowKey(r), e.target.checked])) })} /></th><th>#</th><th className="l">Player</th>{multi && <th>Season</th>}<th className="l">Team</th>
-              {cols.map((k) => { const d = statDef(k, role); return <th key={k} onClick={() => hdr(k)} title={d.desc || k} className={(activeSort === k ? 'active' : '') + (favs.includes(k) && sec !== 'favs' ? ' fav' : '')}>{d.label}{activeSort === k ? (sort.dir < 0 ? ' ▼' : ' ▲') : ''}</th>; })}</tr></thead>
+              {cols.map((k) => { const d = statDef(k, role); return <th key={k} onClick={() => hdr(k)} title={d.desc || k} className={(activeSort === k ? 'active' : '') + (favs.includes(k) && !mine ? ' favcol' : '')}>{d.label}{activeSort === k ? (sort.dir < 0 ? ' ▼' : ' ▲') : ''}</th>; })}</tr></thead>
             <tbody>{shown.map((r, i) => (
               <tr key={rowKey(r)} className={picked[rowKey(r)] ? 'sel' : ''}>
                 <td className="c"><input type="checkbox" checked={!!picked[rowKey(r)]} onChange={(e) => setPicked({ ...picked, [rowKey(r)]: e.target.checked })} /></td>
                 <td className="muted">{page * pageSize + i + 1}</td>
-                <td className="l player-cell"><Headshot id={r.id} size={26} /><Link to={playerHref(role, r.id, r.season, split)}>{r.name}</Link></td>
+                <td className="l player-cell"><span className="pc"><Headshot id={r.id} size={26} /><Link to={playerHref(role, r.id, r.season, split)}>{r.name}</Link></span></td>
                 {multi && <td>{r.season}</td>}<td className="l">{r.team}</td>
                 {cols.map((k) => {
                   const d = statDef(k, role); const v = r.splits[split]?.[k];
@@ -135,6 +145,7 @@ export default function Leaderboard({ index }) {
           <label className="small">Rows <select value={pageSize} onChange={(e) => setPageSize(+e.target.value)}>{PAGE.map((n) => <option key={n}>{n}</option>)}</select></label>
         </div>
       </section>
+      </>}
     </>
   );
 }
