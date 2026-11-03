@@ -114,3 +114,14 @@ table.t.sm { font-size:.88em } .linescore th, .linescore td { text-align:center;
 .pdetails { margin-top:4px } .pdetails summary { cursor:pointer; display:flex; flex-wrap:wrap; gap:6px; align-items:center } .pdetails .pitches { display:inline-flex; flex-wrap:wrap; gap:3px }
 .pitchtbl .ball, .pdetails td.ball { color:var(--c3) } .pdetails td.strike { color:var(--p0) } .pdetails td.inplay { color:var(--p100); font-weight:700 }
 .panel.card .inn-h { margin-top:0 }
+/* stat-app layout: tighter spacing, favorites emphasis */
+:root { --gap:10px; --cell:4px 8px }
+main { padding:12px 14px } .panel { padding:12px } .panel.card h3 { margin-bottom:6px }
+.hero-card { gap:14px; padding:10px 14px } .hero-card h1 { font-size:1.55em }
+.ptabs { margin:0 0 8px; padding:0 0 4px } .tabs.sub { padding:0 0 6px } .tabs .gear { padding:4px 10px }
+.tile { padding:5px 10px; min-width:68px } .tile.big { min-width:112px; flex:1 1 112px; max-width:190px; padding:6px 10px }
+.pct-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:0 22px } .ov-grid .pct-grid { grid-template-columns:1fr } .pct { margin:3px 0 }
+.t th.fav { color:var(--accent); box-shadow:inset 0 -2px var(--accent) }
+.fav-list { display:flex; flex-wrap:wrap; gap:6px } .fav { display:inline-flex; gap:5px; align-items:center; padding:2px 4px 2px 8px; border:1px solid var(--line); border-radius:99px; background:var(--panel2); font-size:.88em } .fav b { color:var(--accent) } .fav button { border:0; background:transparent; cursor:pointer; color:var(--muted); padding:0 3px; font:inherit } .fav button:hover { color:var(--accent) }
+.legend { display:flex; gap:12px; flex-wrap:wrap; font-size:.82em } .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px }
+.grid { grid-auto-flow:dense }

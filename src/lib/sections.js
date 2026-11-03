@@ -14,19 +14,21 @@ const COMMON = {
 
 export const SECTIONS = {
   bat: {
-    dashboard: { label: 'Dashboard', keys: L('G PA HR R RBI SB BB% K% ISO BABIP AVG OBP SLG wOBA xwOBA wRC+ BaseRunning Offense Defense WAR') },
+    dashboard: { label: 'Dashboard', keys: L('G PA HR R RBI SB BB% K% ISO BABIP AVG OBP SLG wOBA xwOBA wRC+ BaseRunning Offense Defense RRAA WAR') },
     standard: { label: 'Standard', keys: L('G AB PA H 1B 2B 3B HR R RBI BB IBB SO HBP SF SH GDP SB CS AVG') },
     advanced: { label: 'Advanced', keys: L('PA BB% K% BB/K AVG OBP SLG OPS ISO BABIP wRAA wRC wOBA wRC+ Spd AVG+ BB%+ K%+ OBP+ SLG+ ISO+ BABIP+') },
     battedBall: COMMON.battedBall, discipline: COMMON.discipline, statcast: COMMON.statcast, batTracking: COMMON.batTracking,
+    rraa: { label: 'RRAA', keys: L('RRAA RRAA_Bat RRAA_BsR RRAA_Fld wwOBA PA WAR') },
     value: { label: 'Value', keys: L('Batting BaseRunning Fielding Positional Offense Defense Replacement RAR WAR WAROld Dollars wBsR UBR XBR GDPRuns CFraming Age') },
     pitchInfo: COMMON.pitchInfo, pitchValues: COMMON.pitchValues, winProb: COMMON.winProb,
   },
   pit: {
-    dashboard: { label: 'Dashboard', keys: L('W L SV G GS IP K/9 BB/9 HR/9 BABIP LOB% GB% HR/FB FBv ERA xERA FIP xFIP WAR') },
+    dashboard: { label: 'Dashboard', keys: L('W L SV G GS IP K/9 BB/9 HR/9 BABIP LOB% GB% HR/FB FBv ERA xERA FIP xFIP RRAA WAR') },
     standard: { label: 'Standard', keys: L('W L ERA G GS CG ShO SV HLD BS IP TBF H R ER HR BB IBB HBP WP BK SO') },
     advanced: { label: 'Advanced', keys: L('K/9 BB/9 K/BB HR/9 K% BB% K-BB% AVG WHIP BABIP LOB% ERA- FIP- xFIP- ERA FIP E-F xFIP SIERA tERA xERA kwERA K/9+ BB/9+ K/BB+ H/9+ HR/9+ AVG+ WHIP+ BABIP+ LOB%+') },
     battedBall: COMMON.battedBall, discipline: COMMON.discipline, statcast: COMMON.statcast,
     stuff: { label: 'Stuff+ & PitchingBot', keys: L('sp_stuff sp_location sp_pitching pb_stuff pb_command pb_overall pb_ERA pb_xRV100'), match: /^(sp_|pb_)/ },
+    rraa: { label: 'RRAA', keys: L('RRAA RRAA_wOBA TBF IP WAR') },
     value: { label: 'Value', keys: L('WAR RAR Dollars RA9-Wins BIP-Wins LOB-Wins BS-Wins Relief-IP Start-IP Starting Relieving Age') },
     pitchInfo: COMMON.pitchInfo, pitchValues: COMMON.pitchValues, winProb: COMMON.winProb,
   },

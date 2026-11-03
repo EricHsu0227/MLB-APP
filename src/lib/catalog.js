@@ -8,11 +8,14 @@ const D2 = dash((v) => v.toFixed(2));
 const INT = dash((v) => String(Math.round(v)));
 const GEN = dash((v) => (Number.isInteger(v) ? String(v) : v.toFixed(2)));
 
-const RATE3_KEYS = new Set('AVG OBP SLG OPS wOBA xwOBA xAVG xSLG ISO BABIP sc_wOBA sc_xwOBA'.split(' '));
+const RATE3_KEYS = new Set('wwOBA RRAA_wOBA AVG OBP SLG OPS wOBA xwOBA xAVG xSLG ISO BABIP sc_wOBA sc_xwOBA'.split(' '));
 const D2_KEYS = new Set('ERA FIP xFIP SIERA tERA xERA kwERA WHIP K/9 BB/9 HR/9 H/9 K/BB BB/K GB/FB RS/9 E-F pb_ERA'.split(' '));
-const D1_KEYS = new Set('WAR RAR wRAA wRC IP Spd EV maxEV EV90 LA sc_EV sc_maxEV sc_EV90 sc_LA AvgBatSpeed SwingLength AttackAngle AttackDirection Tilt BaseRunning Batting Fielding Positional Offense Defense Replacement Dollars WPA -WPA +WPA RE24 REW Clutch wBsR UBR XBR pLI phLI exLI gmLI inLI Start-IP Relief-IP DepthInBox DistanceOffPlate'.split(' '));
+const D1_KEYS = new Set('RRAA RRAA_Bat RRAA_BsR RRAA_Fld WAR RAR wRAA wRC IP Spd EV maxEV EV90 LA sc_EV sc_maxEV sc_EV90 sc_LA AvgBatSpeed SwingLength AttackAngle AttackDirection Tilt BaseRunning Batting Fielding Positional Offense Defense Replacement Dollars WPA -WPA +WPA RE24 REW Clutch wBsR UBR XBR pLI phLI exLI gmLI inLI Start-IP Relief-IP DepthInBox DistanceOffPlate'.split(' '));
 
 const GLOSS = {
+  RRAA: 'Runs Above Average (Eric\'s metric). Hitters: batting runs from wwOBA with park and league adjustments, plus Savant baserunning and team-adjusted fielding runs. Pitchers: runs saved from wOBA allowed with a park adjustment',
+  RRAA_Bat: 'RRAA batting runs: wwOBA runs above average + park + league adjustment', RRAA_BsR: 'RRAA base running runs (Savant Baserunning Run Value)', RRAA_Fld: 'RRAA fielding runs (Savant FRV minus team average per inning)',
+  wwOBA: 'wOBA that also weights strikeouts, double plays and productive outs (RRAA run values)', RRAA_wOBA: 'wOBA allowed on the RRAA run-value scale',
   WAR: 'Wins Above Replacement (FanGraphs)', 'wRC+': 'Weighted Runs Created Plus; 100 = league average', wOBA: 'Weighted On-Base Average', xwOBA: 'Expected wOBA from exit velocity, launch angle and speed',
   xAVG: 'Expected batting average', xSLG: 'Expected slugging', ISO: 'Isolated power (SLG - AVG)', BABIP: 'Batting average on balls in play', 'K%': 'Strikeout rate', 'BB%': 'Walk rate',
   'O-Swing%': 'Swing rate on pitches outside the zone (chase rate)', 'Z-Swing%': 'Swing rate on pitches in the zone', 'SwStr%': 'Swinging-strike rate', 'CSW%': 'Called + whiff strike rate',
@@ -25,7 +28,7 @@ const PREFIX = [[/^sc_/, '', ' (calc)'], [/^pfx/, '', ' (PFX)'], [/^pi(?=[A-Za-z
 
 // Direction a stat is "good" in. 1 = higher is better, -1 = lower is better, 0 = neutral/context.
 const BAT_LOW = /^(sc_)?(K%|K%\+|SwStr%|Soft%|Soft%\+|IFFB%|IFFB|GDP|CS|O-Swing%|GB%|GB%\+|PU%|Whiff%|BU|SO|Strikes|Balls|Swords|CStr%)$/;
-const PIT_LOW = /^(ERA|ERA-|FIP|FIP-|xFIP|xFIP-|SIERA|tERA|xERA|kwERA|WHIP|WHIP\+|BB%|BB%\+|BB\/9|BB\/9\+|HR\/9|HR\/9\+|H\/9|H\/9\+|AVG|AVG\+|OBP|SLG|OPS|BABIP|HR\/FB|HRFB%\+|Hard%|Hard%\+|Barrel%|HardHit%|EV|EV90|maxEV|LD%|LD%\+|R|ER|H|HR|BB|HBP|WP|BK|BS|L|E-F|Pull%|sc_BB%|sc_wOBA|sc_xwOBA|sc_Barrel%|sc_HardHit%|sc_EV|sc_EV90|sc_maxEV|wOBA|xwOBA|xAVG|xSLG|Zone%)$/;
+const PIT_LOW = /^(RRAA_wOBA|ERA|ERA-|FIP|FIP-|xFIP|xFIP-|SIERA|tERA|xERA|kwERA|WHIP|WHIP\+|BB%|BB%\+|BB\/9|BB\/9\+|HR\/9|HR\/9\+|H\/9|H\/9\+|AVG|AVG\+|OBP|SLG|OPS|BABIP|HR\/FB|HRFB%\+|Hard%|Hard%\+|Barrel%|HardHit%|EV|EV90|maxEV|LD%|LD%\+|R|ER|H|HR|BB|HBP|WP|BK|BS|L|E-F|Pull%|sc_BB%|sc_wOBA|sc_xwOBA|sc_Barrel%|sc_HardHit%|sc_EV|sc_EV90|sc_maxEV|wOBA|xwOBA|xAVG|xSLG|Zone%)$/;
 const NEUTRAL = /^(Season|Age|G|GS|Games|Pos|PA|AB|TPA|TBF|IP|Pitches|BBE|bipCount|Events|playerTeamId|teamid|SeasonMin|SeasonMax|Q|Pull%|Cent%|Oppo%|Med%|FB%|GB\/FB|Tilt|AttackDirection|DepthInBox|DistanceOffPlate|sc_PA|sc_BBE|sc_Pitches|sc_Swing%|sc_LA|LA)$/;
 
 export function direction(key, role = 'bat') {

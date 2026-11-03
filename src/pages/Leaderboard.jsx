@@ -6,6 +6,7 @@ import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { percentile, peerPool, sortRows, toCSV } from '../lib/stats.js';
 import { Headshot, RoleSeg, SplitSeg, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
 import { pctColor } from '../lib/themes.js';
+import { favFirst, useFavs, useSectionOrder } from '../lib/favs.js';
 
 const OPS = { '≥': (a, b) => a >= b, '≤': (a, b) => a <= b, '=': (a, b) => Math.abs(a - b) < 1e-9 };
 const PAGE = [25, 50, 100, 250];
@@ -17,7 +18,7 @@ export default function Leaderboard({ index }) {
   const [from, setFrom] = usePref('lb:from', seasons.at(-1));
   const [to, setTo] = usePref('lb:to', seasons.at(-1));
   const [split, setSplit] = usePref('lb:split', 'all');
-  const [sec, setSec] = usePref('lb:sec', 'dashboard');
+  const [sec, setSec] = usePref('lb:sec2', 'favs');
   const [custom, setCustom] = usePref(`lb:custom:${role}`, null);
   const [min, setMin] = usePref(`lb:min:${role}`, role === 'bat' ? 100 : 30);
   const [team, setTeam] = useState('');
@@ -34,11 +35,13 @@ export default function Leaderboard({ index }) {
   const { rows: all, loading, error, loaded, total } = useRows(role, lo, hi, seasons);
   const allKeys = useMemo(() => statKeys(all.length > 3000 ? all.slice(0, 3000) : all), [all]);
   const keySet = useMemo(() => new Set(allKeys), [allKeys]);
-  const secKeys = sec === 'custom' ? (custom || []) : sectionKeys(role, sec, keySet);
+  const [favs] = useFavs(role);
+  const secOrder = useSectionOrder(role, keySet, favs);
+  const secKeys = sec === 'custom' ? (custom || []) : sec === 'favs' ? favs.filter((k) => keySet.has(k)) : favFirst(sectionKeys(role, sec, keySet), favs);
   const cols = secKeys.length > 80 && sec === 'all' ? secKeys.slice(0, 80) : secKeys;
   const teams = useMemo(() => [...new Set(all.map((r) => r.team).filter(Boolean))].sort(), [all]);
   const multi = lo !== hi;
-  const defSort = cols.includes('WAR') ? 'WAR' : cols[0];
+  const defSort = sec === 'favs' ? cols[0] : cols.includes('WAR') ? 'WAR' : cols[0];
 
   const rows = useMemo(() => {
     let r = peerPool(all, split, role === 'bat' ? { minPA: min } : { minIP: min });
@@ -69,7 +72,7 @@ export default function Leaderboard({ index }) {
   return (
     <>
       <section className="panel toolbar">
-        <div className="row"><RoleSeg value={role} onChange={(r) => { setRole(r); setSec('dashboard'); setSort({ key: null, dir: -1 }); setFilters([]); setPicked({}); }} />
+        <div className="row"><RoleSeg value={role} onChange={(r) => { setRole(r); setSec('favs'); setSort({ key: null, dir: -1 }); setFilters([]); setPicked({}); }} />
           <label className="row small">Seasons <select value={from} onChange={(e) => { const v = +e.target.value; setFrom(v); if (v > to) setTo(v); }}>{seasons.map((y) => <option key={y}>{y}</option>)}</select>
             to <select value={to} onChange={(e) => { const v = +e.target.value; setTo(v); if (v < from) setFrom(v); }}>{seasons.map((y) => <option key={y}>{y}</option>)}</select></label>
           <SplitSeg role={role} value={split} onChange={setSplit} /></div>
@@ -91,8 +94,10 @@ export default function Leaderboard({ index }) {
       </section>
 
       <div className="tabs">
-        {sectionIds(role).map((s) => <button type="button" key={s} className={sec === s ? 'on' : ''} onClick={() => { setSec(s); setSort({ key: null, dir: -1 }); }}>{sectionLabel(role, s)}</button>)}
+        <button type="button" className={sec === 'favs' ? 'on' : ''} onClick={() => { setSec('favs'); setSort({ key: null, dir: -1 }); }}>★ My stats</button>
+        {secOrder.map((s) => <button type="button" key={s} className={sec === s ? 'on' : ''} onClick={() => { setSec(s); setSort({ key: null, dir: -1 }); }}>{sectionLabel(role, s)}</button>)}
         <button type="button" className={sec === 'custom' ? 'on' : ''} onClick={() => { if (!custom) setCustom(cols.length ? cols : ['WAR']); setSec('custom'); setEdit(true); }}>★ Custom</button>
+        <button type="button" onClick={() => nav('/settings')} title="Choose your favorite stats">⚙ Edit my stats</button>
       </div>
       {(sec === 'custom' || edit) && sec === 'custom' && <section className="panel"><StatPicker keys={allKeys} role={role} value={custom || []} onChange={setCustom} /></section>}
 
@@ -107,7 +112,7 @@ export default function Leaderboard({ index }) {
         <div className="scroll tall">
           <table className="t lb sticky-2">
             <thead><tr><th className="c"><input type="checkbox" aria-label="select page" checked={shown.length > 0 && shown.every((r) => picked[rowKey(r)])} onChange={(e) => setPicked({ ...picked, ...Object.fromEntries(shown.map((r) => [rowKey(r), e.target.checked])) })} /></th><th>#</th><th className="l">Player</th>{multi && <th>Season</th>}<th className="l">Team</th>
-              {cols.map((k) => { const d = statDef(k, role); return <th key={k} onClick={() => hdr(k)} title={d.desc || k} className={activeSort === k ? 'active' : ''}>{d.label}{activeSort === k ? (sort.dir < 0 ? ' ▼' : ' ▲') : ''}</th>; })}</tr></thead>
+              {cols.map((k) => { const d = statDef(k, role); return <th key={k} onClick={() => hdr(k)} title={d.desc || k} className={(activeSort === k ? 'active' : '') + (favs.includes(k) && sec !== 'favs' ? ' fav' : '')}>{d.label}{activeSort === k ? (sort.dir < 0 ? ' ▼' : ' ▲') : ''}</th>; })}</tr></thead>
             <tbody>{shown.map((r, i) => (
               <tr key={rowKey(r)} className={picked[rowKey(r)] ? 'sel' : ''}>
                 <td className="c"><input type="checkbox" checked={!!picked[rowKey(r)]} onChange={(e) => setPicked({ ...picked, [rowKey(r)]: e.target.checked })} /></td>

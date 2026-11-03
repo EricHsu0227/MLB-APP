@@ -47,6 +47,7 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -r pipeline/requirements.txt
       - run: python pipeline/tests/test_statcast.py
+      - run: python pipeline/tests/test_rraa.py
       - run: python pipeline/build.py ${{ matrix.season }}
       - uses: actions/upload-artifact@v4
         with:
@@ -60,9 +61,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { pattern: season-*, path: _art }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r pipeline/requirements.txt
       - run: |
           for d in _art/season-*; do y="${d##*-}"; mkdir -p public/data/$y; cp -r "$d/." public/data/$y/; done
           rm -rf _art
+          # RRAA park factors pool the last 3 seasons, so recompute every season once all are on disk
+          python pipeline/rraa_finalize.py
           python3 - <<'PY'
           import json, pathlib
           d = pathlib.Path("public/data")
