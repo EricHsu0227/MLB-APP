@@ -149,6 +149,17 @@ def test_player_meta():
         ps = json.loads((root / "2025" / "bat.json").read_text())["players"]
         assert ps[0]["pos"] == "SS" and ps[0]["bats"] == "S" and "pos" not in ps[1]
         assert player_meta.apply(2025, root, lambda y: (_ for _ in ()).throw(RuntimeError("blocked"))) == 0
+        # rookie: under 130 AB / 50 IP in earlier seasons, debut not before the data starts
+        (root / "2024").mkdir()
+        (root / "2024" / "bat.json").write_text(json.dumps({"players": [{"id": 1, "splits": {"all": {"AB": 200}}}, {"id": 2, "splits": {"all": {"AB": 60}}}]}))
+        (root / "2024" / "pit.json").write_text(json.dumps({"players": [{"id": 3, "splits": {"all": {"IP": 49.2}}}]}))
+        (root / "2025" / "pit.json").write_text(json.dumps({"players": [{"id": 3, "splits": {}}]}))
+        meta = {1: {"debut": "2024-04-01"}, 2: {"debut": "2024-09-01"}, 3: {"debut": "2024-05-01"}}
+        player_meta.apply(2025, root, lambda y: meta)
+        bat = {p["id"]: p for p in json.loads((root / "2025" / "bat.json").read_text())["players"]}
+        pit = json.loads((root / "2025" / "pit.json").read_text())["players"][0]
+        assert bat[1]["rookie"] is False and bat[2]["rookie"] is True and pit["rookie"] is True  # 49 2/3 IP < 50
+        assert player_meta.is_rookie(2025, "2010-04-01", 0, 0, 2015) is False
 
 
 if __name__ == "__main__":
