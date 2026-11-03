@@ -74,7 +74,7 @@ export default function RraaBoard({ seasons, lo, hi, split, team, q }) {
     for (const [k, , , , dir] of cols) { if (dir === 0) continue; const by = new Map(); for (const r of rows) { const x = r.splits[split][k]; if (typeof x === 'number') { if (!by.has(r.season)) by.set(r.season, []); by.get(r.season).push(x); } } m.set(k, by); }
     return m;
   }, [rows, cols, shade, split]);
-  const fmt = (k, x) => (x == null ? '—' : k === 'PA' || k === 'TBF' ? Math.round(x) : /wOBA/.test(k) ? x.toFixed(3).replace(/^0/, '') : x.toFixed(1));
+  const fmt = (k, x) => (x == null ? '—' : k === 'WAR' ? x.toFixed(1) : /wOBA/.test(k) ? x.toFixed(3).replace(/^0/, '') : Math.round(x).toString());
   const loading = bat.loading || pit.loading;
   const download = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([toCSV(rows.map((r) => ({ ...r, name: multi ? `${r.name} (${r.season})` : r.name })), split, cols.map(([k]) => k))], { type: 'text/csv' })); a.download = `${lo}-${hi}-rraa-${split}.csv`; a.click(); };
 
