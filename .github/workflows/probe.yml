@@ -1,0 +1,23 @@
+name: Probe sources
+on:
+  push:
+    branches: [probe-sources]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          mkdir out; UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
+          f() { curl -sSL -A "$UA" -o "out/$1" -w "$1 %{http_code} %{content_type} %{size_download}\n" "$2" || true; }
+          f rr_yankees.html "https://www.fangraphs.com/roster-resource/payroll/yankees"
+          f fg_judge.html "https://www.fangraphs.com/players/aaron-judge/15640/stats"
+          f board.html "https://www.fangraphs.com/prospects/the-board/2026-prospect-list/summary?sort=-1,1&type=0&pageitems=200"
+          f board_grad.html "https://www.fangraphs.com/prospects/the-board/2024-prospect-list/summary?sort=-1,1&type=0&pageitems=200"
+          f mlb_prospects.html "https://www.mlb.com/prospects/top100/2024"
+          f savant_judge.html "https://baseballsavant.mlb.com/savant-player/aaron-judge-592450"
+          f sprint.csv "https://baseballsavant.mlb.com/leaderboard/sprint_speed?year=2024&position=&team=&min=10&csv=true"
+          f sprint2.csv "https://baseballsavant.mlb.com/sprint_speed_leaderboard?year=2024&position=&team=&min=10&csv=true"
+          f statsapi_judge.json "https://statsapi.mlb.com/api/v1/people/592450?hydrate=draft,awards,transactions,rosterEntries"
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with: { name: probe, path: out }
