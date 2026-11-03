@@ -9,8 +9,8 @@ import { Seg, StatPicker } from './ui.jsx';
 
 // Order of the selections in the picker. "custom" holds the person's own saved layouts.
 const ORDER = {
-  bat: ['custom', 'playerValue', 'realAbility', 'standard', 'advanced', 'statcast', 'battedBall', 'discipline', 'batTracking', 'value', 'rraa', 'fielding', 'plus', 'winProb', 'pitchType', 'velocity', 'movement', 'pitchValues', 'dashboard', 'all'],
-  pit: ['custom', 'playerValue', 'realAbility', 'standard', 'advanced', 'statcast', 'battedBall', 'discipline', 'stuff', 'pitchType', 'velocity', 'movement', 'pitchValues', 'value', 'rraa', 'plus', 'winProb', 'dashboard', 'all'],
+  bat: ['custom', 'playerValue', 'realAbility', 'standard', 'advanced', 'statcast', 'expected', 'battedBall', 'bbProfile', 'discipline', 'swingTake', 'arsenal', 'batTracking', 'running', 'value', 'rraa', 'fielding', 'plus', 'winProb', 'pitchType', 'velocity', 'movement', 'pitchValues', 'dashboard', 'all'],
+  pit: ['custom', 'playerValue', 'realAbility', 'standard', 'advanced', 'statcast', 'expected', 'arsenal', 'battedBall', 'bbProfile', 'discipline', 'swingTake', 'stuff', 'pitchType', 'velocity', 'movement', 'pitchValues', 'value', 'rraa', 'plus', 'winProb', 'dashboard', 'all'],
 };
 export const COLOR_MODES = [['league', 'vs league avg'], ['own', 'vs his career'], ['off', 'Off']];
 

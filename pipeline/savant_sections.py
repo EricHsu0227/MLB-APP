@@ -15,7 +15,7 @@ WHIFF = {"swinging_strike", "swinging_strike_blocked", "missed_bunt"}
 K_EVENTS = {"strikeout", "strikeout_double_play"}
 HIT_CODE = {"single": 1, "double": 2, "triple": 3, "home_run": 4}
 ZONE_HALF_W = 0.83  # ft: half the plate plus a ball's radius
-SPRAY_MAX = 450
+SPRAY_MAX = 300
 REGIONS = ("heart", "shadow", "chase", "waste")
 QOC = ("weak", "topped", "under", "flare", "solid", "barrel")  # launch_speed_angle 1..6
 
@@ -57,6 +57,10 @@ def prepare(df: pd.DataFrame) -> pd.DataFrame:
     pull = np.where(d["stand"] == "L", ang > 15, ang < -15)
     oppo = np.where(d["stand"] == "L", ang < -15, ang > 15)
     d["dir"] = np.select([pull, oppo, ang.notna()], ["pull", "oppo", "straight"], default=None)
+    for c in ("balls", "strikes", "inning", "outs_when_up"):
+        d[c] = pd.to_numeric(d[c], errors="coerce") if c in d else np.nan
+    d["month"] = pd.to_datetime(d["game_date"], errors="coerce").dt.month if "game_date" in d else np.nan
+    d["home"] = (d["inning_topbot"] == "Bot") if "inning_topbot" in d else None
     d["xw"] = d["estimated_woba_using_speedangle"].where(d["estimated_woba_using_speedangle"].notna(), d["woba_value"])
     return d
 
@@ -150,6 +154,113 @@ def _spray(g: pd.DataFrame) -> list:
     return [[int(round(x)), int(round(y)), int(round(ev)) if pd.notna(ev) else 0, int(c)] for x, y, ev, c in zip(b["hc_x"], b["hc_y"], b["launch_speed"], code)]
 
 
+REACH = {"single", "double", "triple", "home_run", "walk", "intent_walk", "hit_by_pitch"}
+NOT_AB = {"walk", "intent_walk", "hit_by_pitch", "sac_fly", "sac_bunt", "catcher_interf", "sac_fly_double_play", "sac_bunt_double_play"}
+
+
+def _split_line(g: pd.DataFrame) -> list:
+    """[PA, AVG, OBP, SLG, wOBA, xwOBA, K%, BB%, Whiff%, EV, HardHit%]"""
+    pa = g[g["is_pa"]]
+    n = len(pa)
+    if not n:
+        return None
+    ab = int((~pa["events"].isin(NOT_AB)).sum())
+    h = pa["events"].isin(set(HIT_CODE)).sum()
+    tb = pa["events"].map(HIT_CODE).fillna(0).sum()
+    obp_den = ab + pa["events"].isin({"walk", "intent_walk", "hit_by_pitch", "sac_fly"}).sum()
+    den = pa["woba_denom"].fillna(0).sum()
+    sw = int(g["swing"].sum())
+    b = g[g["bbe"]]
+    return [n, _r(_div(h, ab)), _r(_div(pa["events"].isin(REACH).sum(), obp_den)), _r(_div(tb, ab)),
+            _r(_div(pa["woba_value"].fillna(0).sum(), den)), _r(_div(pa["xw"].fillna(0).sum(), den)),
+            _r(_div(pa["is_k"].sum(), n)), _r(_div(pa["events"].isin({"walk", "intent_walk"}).sum(), n)),
+            _r(_div(g["whiff"].sum(), sw)), _r(b["launch_speed"].mean(), 1) if len(b) else None, _r(_div((b["launch_speed"] >= 95).sum(), len(b)))]
+
+
+SPLIT_COLS = ["PA", "AVG", "OBP", "SLG", "wOBA", "xwOBA", "K%", "BB%", "Whiff%", "EV", "HardHit%"]
+MONTHS = {3: "Mar/Apr", 4: "Mar/Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug", 9: "Sep/Oct", 10: "Sep/Oct", 11: "Sep/Oct"}
+
+
+def _splits(g: pd.DataFrame, role: str) -> dict:
+    """{group: [[label, *line], ...]} for month, count (when the PA ended), inning, outs, home/away and opponent hand."""
+    pa_rows = g[g["is_pa"]]
+    hand_col = "p_throws" if role == "bat" else "stand"
+    out = {}
+    groups = {
+        "Month": (g["month"].map(MONTHS), list(dict.fromkeys(MONTHS.values()))),
+        "Inning": (pd.cut(g["inning"], [0, 3, 6, 9, 99], labels=["1-3", "4-6", "7-9", "Extra"]).astype(str), ["1-3", "4-6", "7-9", "Extra"]),
+        "Outs": (g["outs_when_up"].map(lambda v: f"{int(v)} out" if pd.notna(v) else None), ["0 out", "1 out", "2 out"]),
+        "Home/Away": (g["home"].map(lambda v: None if v is None or (isinstance(v, float) and math.isnan(v)) else (("Home" if v else "Away") if role == "bat" else ("Away" if v else "Home"))), ["Home", "Away"]),
+        "Vs hand": (g[hand_col].map({"L": "vs L", "R": "vs R"}), ["vs L", "vs R"]),
+    }
+    for name, (key, order) in groups.items():
+        rows = []
+        for lab in order:
+            line = _split_line(g[key == lab])
+            if line:
+                rows.append([lab, *line])
+        if rows:
+            out[name] = rows
+    # count when the plate appearance ended: the pitch-level count of its last pitch
+    if len(pa_rows) and pa_rows["balls"].notna().any():
+        cnt = (pa_rows["balls"].fillna(0).astype(int).astype(str) + "-" + pa_rows["strikes"].fillna(0).astype(int).astype(str))
+        rows = []
+        for lab in ["0-0", "1-0", "0-1", "2-0", "1-1", "0-2", "3-0", "2-1", "1-2", "3-1", "2-2", "3-2"]:
+            sub = g.loc[cnt[cnt == lab].index]
+            line = _split_line(sub)
+            if line:
+                rows.append([lab, *line])
+        ahead = cnt.isin(["1-0", "2-0", "3-0", "2-1", "3-1"]) if role == "bat" else cnt.isin(["0-1", "0-2", "1-2"])
+        behind = cnt.isin(["0-1", "0-2", "1-2"]) if role == "bat" else cnt.isin(["1-0", "2-0", "3-0", "2-1", "3-1"])
+        for lab, m in (("Ahead", ahead), ("Behind", behind), ("Two strikes", cnt.str.endswith("-2"))):
+            line = _split_line(g.loc[cnt[m].index])
+            if line:
+                rows.append([lab, *line])
+        out["Count"] = rows
+    return out
+
+
+def _movement_sample(g: pd.DataFrame, n: int = 200) -> list:
+    m = g[g["pitch_type"].notna() & g["pfx_x"].notna() & g["pfx_z"].notna()]
+    if len(m) > n:
+        m = m.sample(n, random_state=0)
+    return [[t, _r(x * 12, 1), _r(z * 12, 1)] for t, x, z in zip(m["pitch_type"], m["pfx_x"], m["pfx_z"])]
+
+
+def season_keys(sec: dict, role: str) -> dict:
+    """Flatten the table-friendly parts of a player's sections into season stat keys (prefix sv)."""
+    k = {}
+    for a in sec.get("ars", []):
+        t = a["type"]
+        for src, dst in (("usage", "%"), ("velo", " Velo"), ("spin", " Spin"), ("hb", " HB"), ("ivb", " IVB"), ("ext", " Ext"),
+                         ("whiff", " Whiff%"), ("putaway", " PutAway%"), ("k", " K%"), ("ba", " BA"), ("slg", " SLG"), ("woba", " wOBA"),
+                         ("xwoba", " xwOBA"), ("hh", " HardHit%"), ("rv", " RV"), ("rv100", " RV/100"), ("n", " Pitches")):
+            if a.get(src) is not None:
+                k[f"svA_{t}{dst}"] = a[src]
+    st = sec.get("st", {})
+    for reg, (n, share, swing, rvs, rvt) in st.items():
+        R = reg.capitalize()
+        k[f"svST_{R}%"] = share
+        k[f"svST_{R} Swing%"] = swing
+        if rvs is not None and rvt is not None:
+            k[f"svST_{R} RV"] = _r(rvs + rvt, 1); k[f"svST_{R} Swing RV"] = rvs; k[f"svST_{R} Take RV"] = rvt
+    if st and all(v[3] is not None and v[4] is not None for v in st.values()):
+        k["svST_RV"] = _r(sum(v[3] + v[4] for v in st.values()), 1)
+        k["svST_Swing RV"] = _r(sum(v[3] for v in st.values()), 1)
+        k["svST_Take RV"] = _r(sum(v[4] for v in st.values()), 1)
+    bb = sec.get("bb") or {}
+    if bb:
+        for d, v in bb["dir"].items():
+            k[f"svBB_{d.capitalize()}%"] = v[0]
+        pull = bb["dir"].get("pull")
+        if pull and pull[0] is not None and pull[2] is not None and pull[3] is not None:
+            k["svBB_Pull Air%"] = _r(pull[0] * (pull[2] + pull[3]))
+        for name, v in zip(("Weak", "Topped", "Under", "Flare/Burner", "Solid", "Barrel"), bb["qoc"]):
+            k[f"svBB_{name}%"] = v
+        k["svBB_Sweet Spot%"] = bb["sweet"]
+    return {kk: v for kk, v in k.items() if v is not None}
+
+
 def player_sections(pitches: pd.DataFrame, role: str, min_pitches: int = 50) -> dict[int, dict]:
     if pitches is None or pitches.empty:
         return {}
@@ -159,7 +270,10 @@ def player_sections(pitches: pd.DataFrame, role: str, min_pitches: int = 50) -> 
     for pid, g in d.groupby(id_col):
         if len(g) < min_pitches:
             continue
-        sec = {"n": int(len(g)), "ars": _arsenal(g, role), "zones": _zones(g), "st": _swing_take(g, role), "bb": _batted(g), "spray": _spray(g)}
+        sec = {"n": int(len(g)), "ars": _arsenal(g, role), "zones": _zones(g), "st": _swing_take(g, role), "bb": _batted(g), "spray": _spray(g),
+               "splits": _splits(g, role)}
+        if role == "pit":
+            sec["mov"] = _movement_sample(g)
         if role == "pit":
             sec["hand"] = g["p_throws"].dropna().iloc[0] if g["p_throws"].notna().any() else None
         else:

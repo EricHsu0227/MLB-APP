@@ -1,7 +1,7 @@
 """Season-level Baseball Savant leaderboards merged into the season files.
 
 Season keys (prefix sv_): fielding (OAA, fielding runs prevented, FRV), arm strength, catcher framing and bat-tracking
-run value. Savant's own percentile ranks go into the savant shards ("pct"). URLs were checked to return one season.
+run value. URLs were checked to return one season.
 """
 from __future__ import annotations
 import json, pathlib
@@ -24,7 +24,6 @@ BOARDS = {  # name: (url template, role, id column candidates, {source column: o
                  {"batter_run_value": "sv_SwingRV", "hard_swing_rate": "sv_HardSwing%", "squared_up_per_swing": "sv_SqUpSwing%", "blast_per_swing": "sv_BlastSwing%"}),
 }
 ADDITIVE = {"sv_OAA", "sv_FRP", "sv_FRV", "sv_FRV_Range", "sv_FRV_Arm", "sv_FRV_Framing", "sv_FRV_Block", "sv_FRV_Throw", "sv_Throws", "sv_FramingRV", "sv_FramingPitches", "sv_SwingRV"}
-PCT = {"bat": B + "/percentile-rankings?type=batter&year={y}&csv=true", "pit": B + "/percentile-rankings?type=pitcher&year={y}&csv=true"}
 FIRST_YEAR = {"battrack": 2023, "framing": 2015, "oaa": 2016, "arm": 2020, "frv": 2016}
 
 
@@ -61,25 +60,6 @@ def season_keys(year: int, fetch=savant_board) -> dict[str, dict[int, dict]]:
         d = d.groupby("id").agg({k: ("sum" if k in add else "max") for k in have.values()})  # a player listed at several positions
         for i, r in d.iterrows():
             out[role].setdefault(int(i), {}).update({k: round(float(v), 3) for k, v in r.items() if pd.notna(v)})
-    return out
-
-
-def percentiles(year: int, role: str, fetch=savant_board) -> dict[int, dict]:
-    try:
-        d = fetch(PCT[role].format(y=year))
-    except Exception as e:  # noqa: BLE001
-        print(f"[warn] Savant percentiles {role} {year} unavailable: {e}")
-        return {}
-    pid = _pick(d.columns, "player_id")
-    if pid is None:
-        return {}
-    skip = {pid, _pick(d.columns, "player_name"), _pick(d.columns, "year")}
-    cols = [c for c in d.columns if c not in skip]
-    out = {}
-    for _, r in d.iterrows():
-        vals = {str(c): int(v) for c in cols if pd.notna(v := pd.to_numeric(r[c], errors="coerce"))}
-        if vals and pd.notna(r[pid]):
-            out[int(r[pid])] = vals
     return out
 
 

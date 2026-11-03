@@ -13,8 +13,10 @@ import StatTable, { COLOR_MODES, cellScore, useColorMode } from '../components/S
 import GameLog from '../components/GameLog.jsx';
 import RecentGames from '../components/RecentGames.jsx';
 import Details, { personPath } from '../components/Details.jsx';
+import { ArsenalTab, BattedTab, SplitsTab, ZonesTab } from '../components/Savant.jsx';
 
-const TABS = [['overview', 'Overview'], ['percentiles', 'Percentile ranking'], ['stats', 'Stats'], ['games', 'Game logs'], ['details', 'Player details']];
+const TABS = [['overview', 'Overview'], ['percentiles', 'Percentile ranking'], ['stats', 'Stats'], ['arsenal', 'Pitch arsenal'], ['zones', 'Zones & swing/take'], ['batted', 'Batted balls'], ['splits', 'Splits'], ['games', 'Game logs'], ['details', 'Player details']];
+const tabLabel = (t, l, role) => (t === 'arsenal' && role === 'bat' ? 'Pitches faced' : l);
 const hasDir = (k, role) => !!statDef(k, role).dir;
 
 export default function Player() {
@@ -76,12 +78,16 @@ export default function Player() {
       </section>
 
       <div className="tabs ptabs" role="tablist">
-        {TABS.map(([t, l]) => <button type="button" role="tab" aria-selected={tab === t} key={t} className={tab === t ? 'on' : ''} onClick={() => setParam('tab', t)}>{l}</button>)}
+        {TABS.map(([t, l]) => <button type="button" role="tab" aria-selected={tab === t} key={t} className={tab === t ? 'on' : ''} onClick={() => setParam('tab', t)}>{tabLabel(t, l, role)}</button>)}
       </div>
 
       {tab === 'overview' && <Overview {...ctx} />}
       {tab === 'percentiles' && <PercentileTab {...ctx} />}
       {tab === 'stats' && <StatTable {...ctx} />}
+      {tab === 'arsenal' && <ArsenalTab {...ctx} />}
+      {tab === 'zones' && <ZonesTab {...ctx} />}
+      {tab === 'batted' && <BattedTab {...ctx} />}
+      {tab === 'splits' && <SplitsTab {...ctx} />}
       {tab === 'games' && <section className="panel card"><h3>Game logs</h3><GameLog {...ctx} /></section>}
       {tab === 'details' && <Details {...ctx} person={person} />}
     </div>
