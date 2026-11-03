@@ -4,6 +4,7 @@ import { usePref, useRows } from '../lib/data.js';
 import { percentile, toCSV } from '../lib/stats.js';
 import { pctColor } from '../lib/themes.js';
 import { Headshot, Seg, playerHref } from './ui.jsx';
+import { activeCount, makeFilter } from './LbFilters.jsx';
 
 // One RRAA board for hitters and pitchers together. Two-way players get one row with both parts added up.
 const COLS = [
@@ -24,7 +25,7 @@ const ROLE_OF = { H: 'bat', P: 'pit', TW: 'bat' };
 
 function merge(bat, pit, split) {
   const m = new Map();
-  const get = (r) => { const k = `${r.id}:${r.season}`; if (!m.has(k)) m.set(k, { id: r.id, name: r.name, season: r.season, team: r.team, splits: { [split]: {} }, has: {} }); return m.get(k); };
+  const get = (r) => { const k = `${r.id}:${r.season}`; if (!m.has(k)) m.set(k, { id: r.id, name: r.name, season: r.season, team: r.team, splits: { [split]: {}, ...(split !== 'all' ? { all: {} } : {}) }, has: {} }); const o = m.get(k); const a = r.splits.all?.Age; if (a != null) o.splits.all.Age = a; return o; };
   for (const r of bat) {
     const s = r.splits[split]; if (!s || typeof s.RRAA !== 'number') continue;
     const o = get(r); const d = o.splits[split]; o.has.bat = true;
@@ -46,7 +47,7 @@ function merge(bat, pit, split) {
   });
 }
 
-export default function RraaBoard({ seasons, lo, hi, split, team, q }) {
+export default function RraaBoard({ seasons, lo, hi, split, team, q, xf }) {
   const bat = useRows('bat', lo, hi, seasons);
   const pit = useRows('pit', lo, hi, seasons);
   const [who, setWho] = usePref('lb:rraa:who', 'all');
@@ -62,10 +63,11 @@ export default function RraaBoard({ seasons, lo, hi, split, team, q }) {
     let r = all.filter((x) => { const d = x.splits[split]; return (d.PA ?? 0) + (d.TBF ?? 0) >= min * (split === 'all' ? 1 : 0.4); });
     if (who === 'H') r = r.filter((x) => x.type !== 'P'); else if (who === 'P') r = r.filter((x) => x.type !== 'H');
     if (team) r = r.filter((x) => x.team === team);
+    if (xf && activeCount(xf)) r = r.filter(makeFilter({ ...xf, pos: [], role: '', hand: '', qual: false, maxQ: '' }, 'rraa', split, new Map()));
     if (q) r = r.filter((x) => x.name?.toLowerCase().includes(q.toLowerCase()));
     const v = (x) => x.splits[split][sort.key];
     return r.sort((a, b) => { const x = v(a), y = v(b); if (x == null) return y == null ? 0 : 1; if (y == null) return -1; return sort.dir * (x - y); });
-  }, [all, split, min, who, team, q, sort]);
+  }, [all, split, min, who, team, q, sort, xf]);
   useEffect(() => { setPage(0); }, [rows.length, pageSize]);
   const shown = rows.slice(page * pageSize, (page + 1) * pageSize);
   const pools = useMemo(() => {

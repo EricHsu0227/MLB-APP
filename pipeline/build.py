@@ -1,7 +1,7 @@
 """Build static JSON: python pipeline/build.py 2025 [--role bat|pit]. Output: public/data/<season>/<role>.json"""
 import json, math, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-import fangraphs, rraa, rraa_finalize, savant, savant_boards, savant_sections, statcast
+import fangraphs, player_meta, rraa, rraa_finalize, savant, savant_boards, savant_sections, statcast
 
 OUT = pathlib.Path(__file__).resolve().parents[1] / "public" / "data"
 
@@ -85,6 +85,7 @@ def main(season: int, roles=("bat", "pit")):
         rraa_finalize.main(OUT)
     if d.exists():
         savant_boards.apply(season, OUT)
+        player_meta.apply(season, OUT)
         for role in roles:
             write_sections(season, role, secs.get(role, {}))
     idx = OUT / "index.json"
