@@ -21,6 +21,7 @@ const COLS = [
   ['P_wwRC+', 'wwRC+ against', 'Pitcher wwRC+ against (100 = average, lower is better)', 'pit', -1],
   ['PA', 'PA', 'Plate appearances as a hitter', 'bat', 0],
   ['TBF', 'TBF', 'Batters faced as a pitcher', 'pit', 0],
+  ['RWAR', 'RWAR', 'RRAA wins above replacement, hitting + pitching'],
   ['WAR', 'WAR', 'FanGraphs WAR, hitting + pitching'],
 ];
 const PAGE = [25, 50, 100, 250];
@@ -33,19 +34,19 @@ function merge(bat, pit, split) {
     const s = r.splits[split]; if (!s || typeof s.RRAA !== 'number') continue;
     const o = get(r); const d = o.splits[split]; o.has.bat = true;
     Object.assign(d, { RRAA_H: s.RRAA, RRAA_Bat: s.RRAA_Bat, RRAA_BsR: s.RRAA_BsR, RRAA_Fld: s.RRAA_Fld, wwOBA: s.wwOBA, 'wwRC+': s['wwRC+'], PA: s.RRAA_PA ?? s.PA });
-    d.WAR = (d.WAR ?? 0) + (r.splits.all?.WAR ?? 0);
+    d.WAR = (d.WAR ?? 0) + (r.splits.all?.WAR ?? 0); if (r.splits.all?.RWAR != null) d.RWAR = (d.RWAR ?? 0) + r.splits.all.RWAR;
   }
   for (const r of pit) {
     const s = r.splits[split]; if (!s || typeof s.RRAA !== 'number') continue;
     const o = get(r); const d = o.splits[split]; o.has.pit = true;
     if (!o.has.bat) o.team = r.team;
     Object.assign(d, { RRAA_P: s.RRAA, RRAA_wOBA: s.RRAA_wOBA, P_wwOBA: s.wwOBA, 'P_wwRC+': s['wwRC+'], TBF: s.RRAA_PA ?? s.TBF });
-    d.WAR = (d.WAR ?? 0) + (r.splits.all?.WAR ?? 0);
+    d.WAR = (d.WAR ?? 0) + (r.splits.all?.WAR ?? 0); if (r.splits.all?.RWAR != null) d.RWAR = (d.RWAR ?? 0) + r.splits.all.RWAR;
   }
   return [...m.values()].map((o) => {
     const d = o.splits[split];
     d.RRAA = (d.RRAA_H ?? 0) + (d.RRAA_P ?? 0);
-    if (split !== 'all') delete d.WAR;
+    if (split !== 'all') { delete d.WAR; delete d.RWAR; }
     return { ...o, type: o.has.bat && o.has.pit ? 'TW' : o.has.bat ? 'H' : 'P' };
   });
 }
@@ -79,7 +80,7 @@ export default function RraaBoard({ seasons, lo, hi, split, team, q, xf }) {
     for (const [k, , , , dir] of cols) { if (dir === 0) continue; const by = new Map(); for (const r of rows) { const x = r.splits[split][k]; if (typeof x === 'number') { if (!by.has(r.season)) by.set(r.season, []); by.get(r.season).push(x); } } m.set(k, by); }
     return m;
   }, [rows, cols, shade, split]);
-  const fmt = (k, x) => (x == null ? '—' : k === 'WAR' ? x.toFixed(1) : /wOBA/.test(k) ? x.toFixed(3).replace(/^0/, '') : Math.round(x).toString());
+  const fmt = (k, x) => (x == null ? '—' : k === 'WAR' || k === 'RWAR' ? x.toFixed(1) : /wOBA/.test(k) ? x.toFixed(3).replace(/^0/, '') : Math.round(x).toString());
   const loading = bat.loading || pit.loading;
   const download = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([toCSV(rows.map((r) => ({ ...r, name: multi ? `${r.name} (${r.season})` : r.name })), split, cols.map(([k]) => k))], { type: 'text/csv' })); a.download = `${lo}-${hi}-rraa-${split}.csv`; a.click(); };
 

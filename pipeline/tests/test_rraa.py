@@ -172,5 +172,22 @@ def test_player_meta():
         assert player_meta.is_rookie(2025, "2010-04-01", 0, 0, 2015) is False
 
 
+def test_rwar():
+    with tempfile.TemporaryDirectory() as t:
+        d = pathlib.Path(t) / "2025"; d.mkdir()
+        bat = [{"id": 1, "splits": {"all": {"RRAA": 30.0, "Positional": -10.0, "RRAA_PA": 600, "WAR": 4.0}}},
+               {"id": 2, "splits": {"all": {"RRAA": -10.0, "Positional": 5.0, "RRAA_PA": 400, "WAR": 0.5}}},
+               {"id": 3, "splits": {"all": {"PA": 3, "WAR": 0.0}}}]  # no RRAA: left alone
+        pit = [{"id": 4, "splits": {"all": {"RRAA": 20.0, "RRAA_PA": 800, "TBF": 800, "IP": 190.1, "WAR": 4.0}}},
+               {"id": 5, "splits": {"all": {"RRAA": -5.0, "RRAA_PA": 300, "TBF": 300, "IP": 70.2, "WAR": 0.2}}}]
+        (d / "bat.json").write_text(json.dumps({"players": bat})); (d / "pit.json").write_text(json.dumps({"players": pit}))
+        rraa_finalize.add_rwar(d, 0.12)
+        b = [p["splits"]["all"] for p in json.loads((d / "bat.json").read_text())["players"]]
+        q = [p["splits"]["all"] for p in json.loads((d / "pit.json").read_text())["players"]]
+        assert abs(b[0]["RWAR"] + b[1]["RWAR"] - 4.5) < 0.02 and "RWAR" not in b[2]  # totals match FanGraphs WAR
+        assert abs(q[0]["RWAR"] + q[1]["RWAR"] - 4.2) < 0.02
+        assert b[0]["RWAR"] > b[1]["RWAR"] and q[0]["RWAR"] > q[1]["RWAR"]
+
+
 if __name__ == "__main__":
-    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); test_refresh_and_new_keys(); test_player_meta(); print("ok")
+    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); test_refresh_and_new_keys(); test_player_meta(); test_rwar(); print("ok")
