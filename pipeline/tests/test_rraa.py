@@ -78,6 +78,11 @@ def test_rraa():
     avg = sum(r["wwRC+"] * r["RRAA_PA"] for r in rows) / sum(r["RRAA_PA"] for r in rows)
     assert 97 < avg < 103, avg
     assert all((r["wwRC+"] > 100) == (r["RRAA_Bat"] > 0) for r in rows if abs(r["RRAA_Bat"]) > 0.5)
+    # pitchers: wwOBA and wwRC+ allowed, PA-weighted league average about 100
+    prow = [v["all"] for v in final[2025]["pit"].values()]
+    assert all({"wwOBA", "wwRC+", "RRAA_wOBA", "lg_wwOBA"} <= r.keys() for r in prow)
+    pavg = sum(r["wwRC+"] * r["RRAA_PA"] for r in prow) / sum(r["RRAA_PA"] for r in prow)
+    assert 97 < pavg < 103, pavg
     # park and league adjustments are zero-sum-ish across the league: total pitcher RRAA close to 0
     assert abs(sum(v["all"]["RRAA"] for v in final[2025]["pit"].values())) < 5
 

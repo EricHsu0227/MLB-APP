@@ -8,7 +8,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import rraa
 
 OUT = pathlib.Path(__file__).resolve().parents[1] / "public" / "data"
-KEYS = {"RRAA", "RRAA_Bat", "RRAA_BsR", "RRAA_Fld", "RRAA_wOBA", "wwOBA", "RRAA_wRAA", "RRAA_Park", "RRAA_Lg", "RRAA_PA", "RRAA_FRV", "lg_wwOBA", "lg_wOBA"}
+KEYS = {"RRAA", "RRAA_Bat", "RRAA_BsR", "RRAA_Fld", "RRAA_wOBA", "wwOBA", "RRAA_wRAA", "RRAA_Park", "RRAA_Lg", "RRAA_PA", "RRAA_FRV", "lg_wwOBA", "lg_wOBA", "wwRC+"}
 
 
 def main(root=OUT):

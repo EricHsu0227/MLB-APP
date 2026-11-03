@@ -17,6 +17,8 @@ const COLS = [
   ['wwOBA', 'wwOBA', 'Weighted wOBA (hitters)', 'bat'],
   ['wwRC+', 'wwRC+', 'wRC+ built on wwOBA (100 = average)', 'bat'],
   ['RRAA_wOBA', 'wOBA against', 'Pitcher wOBA against', 'pit', -1],
+  ['P_wwOBA', 'wwOBA against', 'Pitcher wwOBA against', 'pit', -1],
+  ['P_wwRC+', 'wwRC+ against', 'Pitcher wwRC+ against (100 = average, lower is better)', 'pit', -1],
   ['PA', 'PA', 'Plate appearances as a hitter', 'bat', 0],
   ['TBF', 'TBF', 'Batters faced as a pitcher', 'pit', 0],
   ['WAR', 'WAR', 'FanGraphs WAR, hitting + pitching'],
@@ -37,7 +39,7 @@ function merge(bat, pit, split) {
     const s = r.splits[split]; if (!s || typeof s.RRAA !== 'number') continue;
     const o = get(r); const d = o.splits[split]; o.has.pit = true;
     if (!o.has.bat) o.team = r.team;
-    Object.assign(d, { RRAA_P: s.RRAA, RRAA_wOBA: s.RRAA_wOBA, TBF: s.RRAA_PA ?? s.TBF });
+    Object.assign(d, { RRAA_P: s.RRAA, RRAA_wOBA: s.RRAA_wOBA, P_wwOBA: s.wwOBA, 'P_wwRC+': s['wwRC+'], TBF: s.RRAA_PA ?? s.TBF });
     d.WAR = (d.WAR ?? 0) + (r.splits.all?.WAR ?? 0);
   }
   return [...m.values()].map((o) => {

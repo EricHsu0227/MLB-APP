@@ -38,7 +38,7 @@ export const SECTIONS = {
   },
   pit: {
     playerValue: { label: 'Player value', keys: L('WAR RRAA RAR RA9-Wins BIP-Wins LOB-Wins RRAA_wRAA RRAA_Park WPA RE24 Dollars ERA- FIP-'), editable: true },
-    realAbility: { label: 'Real ability', keys: L('K-BB% K% BB% SwStr% CSW% C+SwStr% O-Swing% Zone% xFIP SIERA xERA sc_xwOBA RRAA_wOBA GB% Barrel% HardHit% EV FBv sp_stuff sp_location sp_pitching pb_overall'), editable: true },
+    realAbility: { label: 'Real ability', keys: L('K-BB% K% BB% SwStr% CSW% C+SwStr% O-Swing% Zone% xFIP SIERA xERA sc_xwOBA RRAA_wOBA wwOBA wwRC+ GB% Barrel% HardHit% EV FBv sp_stuff sp_location sp_pitching pb_overall'), editable: true },
     standard: { label: 'Standard', keys: L('W L ERA G GS CG ShO SV HLD BS IP TBF H R ER HR BB IBB HBP WP BK SO') },
     advanced: { label: 'Advanced', keys: L('K/9 BB/9 K/BB HR/9 K% BB% K-BB% AVG WHIP BABIP LOB% ERA- FIP- xFIP- ERA FIP E-F xFIP SIERA tERA xERA kwERA K/9+ BB/9+ K/BB+ H/9+ HR/9+ AVG+ WHIP+ BABIP+ LOB%+') },
     statcast: COMMON.statcast, battedBall: COMMON.battedBall, discipline: COMMON.discipline,
@@ -46,7 +46,7 @@ export const SECTIONS = {
     stuff: { label: 'Stuff+ & PitchingBot', keys: L('sp_stuff sp_location sp_pitching pb_stuff pb_command pb_overall pb_ERA pb_xRV100'), match: /^(sp_|pb_)/ },
     pitchType: COMMON.pitchType, velocity: COMMON.velocity, movement: COMMON.movement, pitchValues: COMMON.pitchValues,
     value: { label: 'Value', keys: L('WAR RAR Dollars RA9-Wins BIP-Wins LOB-Wins BS-Wins Relief-IP Start-IP Starting Relieving Age') },
-    rraa: { label: 'RRAA', keys: L('RRAA RRAA_wRAA RRAA_Park RRAA_wOBA lg_wOBA RRAA_PA TBF IP WAR') },
+    rraa: { label: 'RRAA', keys: L('RRAA RRAA_wRAA RRAA_Park RRAA_wOBA lg_wOBA wwOBA wwRC+ lg_wwOBA RRAA_PA TBF IP WAR') },
     plus: COMMON.plus, winProb: COMMON.winProb,
     dashboard: { label: 'Dashboard', keys: L('W L SV G GS IP K/9 BB/9 HR/9 BABIP LOB% GB% HR/FB FBv ERA xERA FIP xFIP RRAA WAR') },
   },

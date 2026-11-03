@@ -7,6 +7,7 @@
     wwRC+ = 100 * (Batting Runs/PA + league non-pitcher R/PA) / league non-pitcher R/PA, wRC+ on wwOBA
     Base Running = Savant Baserunning Run Value; Fielding = Savant FRV minus team-average FRV per inning.
   Pitcher RRAA = (lgwOBA - wOBA allowed) / wOBA scale per PA + lgR/PA * (wPF - 1) per PA
+  Pitchers also get wwOBA and wwRC+ allowed (100 * (hitter wwOBA runs/PA, park adjusted, + lgR/PA) / lgR/PA; lower is better).
 
 Run values come from the season's own 24-state run expectancy. Park factors pool the last 3 seasons, so
 each season job writes `rraa_parts.json` (per-player sums plus PA counts by park) and `finalize()` turns
@@ -208,7 +209,7 @@ def team_adjusted_fld(frv: dict[int, float], inn: pd.DataFrame) -> dict[int, flo
     return {pid: v - float(exp.get(pid, 0.0)) for pid, v in frv.items()}
 
 
-def _sides(df: pd.DataFrame, id_col: str, hand_col: str, w_col: str, raa_col: str, lg_col: str | None):
+def _sides(df: pd.DataFrame, id_col: str, hand_col: str, w_col: str, raa_col: str, lg_col: str | None, extra: dict | None = None):
     """{id: {split: {PA, w, raa, lg?, parks{team: n}}}} for all / vsL / vsR."""
     out: dict[int, dict] = {}
     for sp, sub in (("all", df), ("vsL", df[df[hand_col] == "L"]), ("vsR", df[df[hand_col] == "R"])):
@@ -217,6 +218,7 @@ def _sides(df: pd.DataFrame, id_col: str, hand_col: str, w_col: str, raa_col: st
         agg = {"PA": (w_col, "size"), "w": (w_col, "mean"), "raa": (raa_col, "sum")}
         if lg_col:
             agg["lg"] = (lg_col, "sum")
+        agg.update(extra or {})
         a = sub.groupby(id_col).agg(**agg)
         parks = sub.groupby([id_col, "park"]).size()
         for pid, r in a.iterrows():
@@ -239,7 +241,8 @@ def season_parts(raw: pd.DataFrame, year: int, fetch_leaderboards: bool = True) 
     pa["raa_p"] = (info["lg_woba"] - pa["woba"]) / info["woba_scale"]
 
     bat = _sides(pa[~pa["bat_is_pitcher"]], "batter", "p_throws", "wwoba", "_raa", "lg_i")
-    pit = _sides(pa, "pitcher", "stand", "woba", "raa_p", None)
+    # pitchers also get the hitter-side wwOBA allowed and its runs, for wwOBA / wwRC+ against
+    pit = _sides(pa, "pitcher", "stand", "woba", "raa_p", None, {"ww": ("wwoba", "mean"), "wwraa": ("_raa", "sum")})
 
     if fetch_leaderboards:
         frv_raw: dict[int, float] = {}
@@ -301,6 +304,12 @@ def finalize(parts: dict[int, dict]) -> dict[int, dict[str, dict]]:
         pf, lg = pfs[s], p["lgR_PA"]
         park_sum = lambda parks, sign: lg * sum(n * sign * (pf.get(t, 1.0) - 1.0) for t, n in parks.items())  # noqa: E731
         bat, pit = {}, {}
+
+        def pitch_ww(x, park):
+            """wwOBA and wwRC+ allowed (parts built before these were added have no "ww" and get neither)."""
+            if "ww" not in x or not x["PA"]:
+                return {}
+            return {"wwOBA": x["ww"], "lg_wwOBA": p["lg_wwoba"], "wwRC+": round(100 * (1 + (x["wwraa"] + park) / (x["PA"] * lg)), 1)}
         for pid, e in p["bat"].items():
             row = {}
             for sp in ("all", "vsL", "vsR"):
@@ -327,7 +336,7 @@ def finalize(parts: dict[int, dict]) -> dict[int, dict[str, dict]]:
             bat[int(pid)] = row
         for pid, e in p["pit"].items():
             pit[int(pid)] = {sp: {"RRAA": x["raa"] + park_sum(x["parks"], 1), "RRAA_wOBA": x["w"], "RRAA_wRAA": x["raa"],
-                                  "RRAA_Park": park_sum(x["parks"], 1), "RRAA_PA": x["PA"], **({"lg_wOBA": p["lg_woba"]} if sp == "all" else {})}
+                                  "RRAA_Park": park_sum(x["parks"], 1), "RRAA_PA": x["PA"], "lg_wOBA": p["lg_woba"], **pitch_ww(x, park_sum(x["parks"], -1))}
                              for sp, x in e.items()}
         out[s] = {"bat": bat, "pit": pit}
     return out
