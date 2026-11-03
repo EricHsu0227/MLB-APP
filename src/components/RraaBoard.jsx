@@ -25,7 +25,7 @@ const ROLE_OF = { H: 'bat', P: 'pit', TW: 'bat' };
 
 function merge(bat, pit, split) {
   const m = new Map();
-  const get = (r) => { const k = `${r.id}:${r.season}`; if (!m.has(k)) m.set(k, { id: r.id, name: r.name, season: r.season, team: r.team, splits: { [split]: {}, ...(split !== 'all' ? { all: {} } : {}) }, has: {} }); const o = m.get(k); const a = r.splits.all?.Age; if (a != null) o.splits.all.Age = a; return o; };
+  const get = (r) => { const k = `${r.id}:${r.season}`; if (!m.has(k)) m.set(k, { id: r.id, name: r.name, season: r.season, team: r.team, splits: { [split]: {}, ...(split !== 'all' ? { all: {} } : {}) }, has: {} }); const o = m.get(k); if (r.rookie) o.rookie = true; const a = r.splits.all?.Age; if (a != null) o.splits.all.Age = a; return o; };
   for (const r of bat) {
     const s = r.splits[split]; if (!s || typeof s.RRAA !== 'number') continue;
     const o = get(r); const d = o.splits[split]; o.has.bat = true;

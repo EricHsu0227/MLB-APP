@@ -4,12 +4,12 @@ import { Seg } from './ui.jsx';
 
 // Extra leaderboard filters. Position / bats / throws come from the MLB Stats API (player_meta.py); rows without them
 // pass through until the data has them.
-export const EMPTY = { lg: '', div: '', pos: [], role: '', hand: '', ageMin: '', ageMax: '', qual: false, maxQ: '' };
+export const EMPTY = { lg: '', div: '', pos: [], role: '', hand: '', ageMin: '', ageMax: '', qual: false, maxQ: '', rookie: false };
 const POS = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'TWP'];
 const GROUPS = { IF: ['1B', '2B', '3B', 'SS'], OF: ['LF', 'CF', 'RF', 'OF'] };
 
 export const useLbFilters = () => usePref('lb:f2', EMPTY);
-export const activeCount = (f) => ['lg', 'div', 'role', 'hand', 'ageMin', 'ageMax', 'maxQ'].filter((k) => f[k] !== '' && f[k] != null).length + (f.pos?.length ? 1 : 0) + (f.qual ? 1 : 0);
+export const activeCount = (f) => ['lg', 'div', 'role', 'hand', 'ageMin', 'ageMax', 'maxQ'].filter((k) => f[k] !== '' && f[k] != null).length + (f.pos?.length ? 1 : 0) + (f.qual ? 1 : 0) + (f.rookie ? 1 : 0);
 
 /** Team games for the qualifying line: 60 in 2020, else the most any hitter (or 5x the most starts) has played so far, at most 162. */
 export function teamGames(rows, role) {
@@ -33,6 +33,7 @@ export function makeFilter(f, role, split, games) {
     const s = r.splits[split] || {};
     const all = r.splits.all || {};
     const age = all.Age ?? s.Age;
+    if (f.rookie && r.rookie !== true) return false;
     if (f.ageMin !== '' && !(age >= +f.ageMin)) return false;
     if (f.ageMax !== '' && !(age <= +f.ageMax)) return false;
     if (role === 'bat') {
@@ -66,6 +67,7 @@ export default function LbFilters({ role, value: f, onChange, rraa }) {
         <label className="small row">Age <input type="number" placeholder="min" style={{ width: 58 }} value={f.ageMin} onChange={(e) => set({ ageMin: e.target.value })} />–<input type="number" placeholder="max" style={{ width: 58 }} value={f.ageMax} onChange={(e) => set({ ageMax: e.target.value })} /></label>
         {!rraa && <span className="row small">{bat ? 'Bats' : 'Throws'} <Seg small value={f.hand} onChange={(v) => set({ hand: v })} options={bat ? [['', 'All'], ['L', 'L'], ['R', 'R'], ['S', 'Switch']] : [['', 'All'], ['L', 'LHP'], ['R', 'RHP']]} /></span>}
         {!rraa && !bat && <Seg small value={f.role} onChange={(v) => set({ role: v })} options={[['', 'SP + RP'], ['SP', 'Starters'], ['RP', 'Relievers']]} />}
+        <label className="small row"><input type="checkbox" checked={!!f.rookie} onChange={(e) => set({ rookie: e.target.checked })} /> Rookies</label>
         {!rraa && <label className="small row"><input type="checkbox" checked={f.qual} onChange={(e) => set({ qual: e.target.checked })} /> Qualified only</label>}
         {!rraa && <label className="small row">Max {bat ? 'PA' : 'IP'} <input type="number" style={{ width: 70 }} value={f.maxQ} onChange={(e) => set({ maxQ: e.target.value })} /></label>}
       </div>
