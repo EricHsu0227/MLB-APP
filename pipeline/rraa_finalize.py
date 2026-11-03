@@ -16,6 +16,10 @@ def main(root=OUT):
     if not parts:
         print("no rraa_parts.json files; nothing to do")
         return
+    for season, p in parts.items():  # persist upgraded parts so they are only rescaled once
+        if p.get("v", 1) < 2:
+            parts[season] = rraa.upgrade(p)
+            (root / str(season) / "rraa_parts.json").write_text(json.dumps(parts[season], separators=(",", ":")))
     final = rraa.finalize(parts)
     for season, roles in final.items():
         for role, vals in roles.items():
