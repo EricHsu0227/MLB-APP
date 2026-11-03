@@ -48,6 +48,9 @@ def season_keys(year: int, fetch=savant_board) -> dict[str, dict[int, dict]]:
             print(f"[warn] Savant {name} {year}: no id column in {list(d.columns)[:8]}")
             continue
         have = {c: k for c, k in cols.items() if _pick(d.columns, c)}
+        if not have:
+            print(f"[warn] Savant {name} {year}: none of {list(cols)} in {list(d.columns)[:12]}")
+            continue
         d = d[[pid] + [_pick(d.columns, c) for c in have]].copy()
         d.columns = ["id"] + list(have.values())
         d["id"] = _num(d["id"])
