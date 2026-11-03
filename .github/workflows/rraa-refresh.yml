@@ -1,0 +1,26 @@
+name: Refresh RRAA leaderboards
+# Re-reads the Savant baserunning and fielding run value leaderboards for seasons already built and rewrites RRAA.
+on:
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: 'Seasons: "2015-2026" or "2024"'
+        default: "2015-2026"
+permissions: { contents: write }
+concurrency: { group: data, cancel-in-progress: false }
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r pipeline/requirements.txt
+      - run: python pipeline/tests/test_rraa.py
+      - run: python pipeline/rraa_refresh.py "${{ github.event.inputs.seasons }}"
+      - run: |
+          git config user.name "data-bot"; git config user.email "actions@users.noreply.github.com"
+          git add public/data
+          git diff --cached --quiet && { echo "no data changes"; exit 0; }
+          git commit -m "data: refresh RRAA baserunning and fielding"
+          for i in 1 2 3 4; do git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0; sleep $((i*15)); done; exit 1

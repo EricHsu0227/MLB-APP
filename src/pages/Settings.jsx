@@ -38,7 +38,7 @@ export default function Settings({ index }) {
     <>
       <section className="panel">
         <h2 style={{ margin: 0 }}>Settings</h2>
-        <p className="muted" style={{ margin: '4px 0 0' }}>Pick the stats you care about most and the app leans toward them: they become the default columns on the leaderboard, the stats on a player’s Overview, Trends and Compare, and they sort first in every stat table, with the sections that contain the most of them listed first.</p>
+        <p className="muted" style={{ margin: '4px 0 0' }}>Pick the stats you care about most and the app leans toward them: they become the default columns on the leaderboard, the stats on a player’s Overview and Compare, and they sort first in every stat table, with the sections that contain the most of them listed first.</p>
       </section>
       <div className="grid" style={{ '--cols': 2 }}>
         <Favs role="bat" season={season} />

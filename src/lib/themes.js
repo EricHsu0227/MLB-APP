@@ -7,6 +7,10 @@ const C = (a, b, c, d, e, f) => ({ '--c1': a, '--c2': b, '--c3': c, '--c4': d, '
 const base = { '--font': sans, '--head-font': sans, '--radius': '12px', '--shadow': '0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.06)', '--accent-fg': '#fff' };
 
 export const THEMES = [
+  { id: 'black', label: 'Black', dark: true, swatch: ['#000000', '#f5b700', '#ef4444'], v: { ...base,
+    '--bg': '#000000', '--bg2': '#050505', '--fg': '#f2f2f3', '--muted': '#9a9aa5', '--panel': '#0c0c0e', '--panel2': '#16161a', '--line': '#26262c',
+    '--accent': '#f5b700', '--accent-fg': '#111', '--nav': '#000000d9', '--shadow': 'none', '--radius': '10px',
+    '--p0': '#3b82f6', '--p50': '#2a2a31', '--p100': '#ef4444', ...C('#f5b700', '#ef4444', '#3b82f6', '#22c55e', '#a78bfa', '#22d3ee') } },
   { id: 'light', label: 'Light', dark: false, swatch: ['#ffffff', '#2563eb', '#dc2626'], v: { ...base,
     '--bg': '#f4f6fa', '--bg2': '#eef1f7', '--fg': '#0f172a', '--muted': '#64748b', '--panel': '#ffffff', '--panel2': '#f1f5f9', '--line': '#e2e8f0',
     '--accent': '#2563eb', '--nav': '#ffffffcc', '--p0': '#3b82f6', '--p50': '#e2e8f0', '--p100': '#ef4444', ...C('#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2') } },
@@ -57,7 +61,7 @@ export const THEMES = [
 ];
 
 export const FONTS = [['Theme default', ''], ['Sans', sans], ['Serif', serif], ['Mono', mono]];
-export const DEFAULT_UI = { theme: 'auto', accent: '', radius: -1, font: '', fontSize: 14, density: 'cozy', cards: 'default' };
+export const DEFAULT_UI = { theme: 'black', accent: '', radius: -1, font: '', fontSize: 14, density: 'cozy', cards: 'default' };
 
 const prefersDark = () => { try { return matchMedia('(prefers-color-scheme: dark)').matches; } catch { return false; } };
 export function resolveTheme(id) {
