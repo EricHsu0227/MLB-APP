@@ -15,6 +15,7 @@ const COLS = [
   ['RRAA_BsR', 'BsR', 'Baserunning runs', 'bat'],
   ['RRAA_Fld', 'Fld', 'Fielding runs', 'bat'],
   ['wwOBA', 'wwOBA', 'Weighted wOBA (hitters)', 'bat'],
+  ['wwRC+', 'wwRC+', 'wRC+ built on wwOBA (100 = average)', 'bat'],
   ['RRAA_wOBA', 'wOBA against', 'Pitcher wOBA against', 'pit', -1],
   ['PA', 'PA', 'Plate appearances as a hitter', 'bat', 0],
   ['TBF', 'TBF', 'Batters faced as a pitcher', 'pit', 0],
@@ -29,7 +30,7 @@ function merge(bat, pit, split) {
   for (const r of bat) {
     const s = r.splits[split]; if (!s || typeof s.RRAA !== 'number') continue;
     const o = get(r); const d = o.splits[split]; o.has.bat = true;
-    Object.assign(d, { RRAA_H: s.RRAA, RRAA_Bat: s.RRAA_Bat, RRAA_BsR: s.RRAA_BsR, RRAA_Fld: s.RRAA_Fld, wwOBA: s.wwOBA, PA: s.RRAA_PA ?? s.PA });
+    Object.assign(d, { RRAA_H: s.RRAA, RRAA_Bat: s.RRAA_Bat, RRAA_BsR: s.RRAA_BsR, RRAA_Fld: s.RRAA_Fld, wwOBA: s.wwOBA, 'wwRC+': s['wwRC+'], PA: s.RRAA_PA ?? s.PA });
     d.WAR = (d.WAR ?? 0) + (r.splits.all?.WAR ?? 0);
   }
   for (const r of pit) {

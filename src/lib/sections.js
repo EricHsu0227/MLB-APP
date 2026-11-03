@@ -22,12 +22,12 @@ const COMMON = {
 export const SECTIONS = {
   bat: {
     playerValue: { label: 'Player value', keys: L('WAR RRAA RAR Batting BaseRunning Fielding Positional Offense Defense RRAA_Bat RRAA_BsR RRAA_Fld wRAA wRC wRC+ WPA RE24 Dollars'), editable: true },
-    realAbility: { label: 'Real ability', keys: L('xwOBA wwOBA xAVG xSLG EV EV90 maxEV Barrel% HardHit% LA K% BB% O-Swing% Z-Contact% SwStr% Contact% AvgBatSpeed SquaredUpContact% BlastContact% Spd sc_xwOBA sc_EV90 sc_Barrel%'), editable: true },
+    realAbility: { label: 'Real ability', keys: L('xwOBA wwOBA wwRC+ xAVG xSLG EV EV90 maxEV Barrel% HardHit% LA K% BB% O-Swing% Z-Contact% SwStr% Contact% AvgBatSpeed SquaredUpContact% BlastContact% Spd sc_xwOBA sc_EV90 sc_Barrel%'), editable: true },
     standard: { label: 'Standard', keys: L('G AB PA H 1B 2B 3B HR R RBI BB IBB SO HBP SF SH GDP SB CS AVG') },
     advanced: { label: 'Advanced', keys: L('PA BB% K% BB/K AVG OBP SLG OPS ISO BABIP wRAA wRC wOBA wRC+ Spd AVG+ BB%+ K%+ OBP+ SLG+ ISO+ BABIP+') },
     statcast: COMMON.statcast, battedBall: COMMON.battedBall, discipline: COMMON.discipline, batTracking: COMMON.batTracking,
     value: { label: 'Value', keys: L('Batting BaseRunning Fielding Positional Offense Defense Replacement RAR WAR WAROld Dollars wBsR UBR XBR GDPRuns CFraming Age') },
-    rraa: { label: 'RRAA', keys: L('RRAA RRAA_Bat RRAA_wRAA RRAA_Park RRAA_Lg RRAA_BsR RRAA_Fld RRAA_FRV wwOBA lg_wwOBA RRAA_PA WAR') },
+    rraa: { label: 'RRAA', keys: L('RRAA RRAA_Bat RRAA_wRAA RRAA_Park RRAA_Lg RRAA_BsR RRAA_Fld RRAA_FRV wwOBA wwRC+ lg_wwOBA RRAA_PA WAR') },
     fielding: { label: 'Fielding', keys: L('sv_OAA sv_FRP sv_FRV sv_FRV_Range sv_FRV_Arm sv_FRV_Throw sv_FRV_Block sv_FRV_Framing sv_Arm sv_ArmMax sv_Throws sv_FramingRV sv_Framing% sv_FramingPitches Fielding Defense Positional CFraming RRAA_Fld RRAA_FRV') },
     running: { label: 'Running', keys: L('sv_Sprint sv_HPto1B sv_Bolts sv_CompRuns RRAA_BsR BaseRunning wBsR UBR XBR Spd SB CS') },
     arsenal: { ...COMMON.arsenal, label: 'Pitches Faced (Savant)' }, swingTake: COMMON.swingTake, bbProfile: COMMON.bbProfile, expected: COMMON.expected,

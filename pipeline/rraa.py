@@ -4,6 +4,7 @@
     Batting Runs = wRAA (wwOBA, which also credits/debits K, GIDP and productive outs)
                    + park adjustment (lgR/PA - wPF * lgR/PA per PA)
                    + league adjustment (lgR/PA - AL/NL non-pitcher wRC/PA per PA)
+    wwRC+ = 100 * (Batting Runs/PA + league non-pitcher R/PA) / league non-pitcher R/PA, wRC+ on wwOBA
     Base Running = Savant Baserunning Run Value; Fielding = Savant FRV minus team-average FRV per inning.
   Pitcher RRAA = (lgwOBA - wOBA allowed) / wOBA scale per PA + lgR/PA * (wPF - 1) per PA
 
@@ -309,6 +310,12 @@ def finalize(parts: dict[int, dict]) -> dict[int, dict[str, dict]]:
                 park = park_sum(x["parks"], -1)
                 runs = x["raa"] + park + x["lg"]
                 row[sp] = {"wwOBA": x["w"], "RRAA_Bat": runs, "RRAA_wRAA": x["raa"], "RRAA_Park": park, "RRAA_Lg": x["lg"], "RRAA_PA": x["PA"]}
+                if x["PA"]:
+                    # wRC+ built the FanGraphs way from wwOBA runs: (wRAA/PA + lgR/PA + park/PA) / league non-pitcher R/PA.
+                    # The league adjustment is lgR/PA - that rate per PA, so the rate is lgR/PA - lg/PA, and RRAA_Bat/PA + rate is the numerator.
+                    np_rate = lg - x["lg"] / x["PA"]
+                    if np_rate > 0:
+                        row[sp]["wwRC+"] = round(100 * (1 + runs / (x["PA"] * np_rate)), 1)
                 bsr, fld = e.get("bsr", 0.0), e.get("fld", 0.0)
                 if sp == "all":
                     row[sp].update({"RRAA_BsR": bsr, "RRAA_Fld": fld, "RRAA": runs + bsr + fld, "lg_wwOBA": p["lg_wwoba"]})
