@@ -110,8 +110,10 @@ def add_values(pa: pd.DataFrame):
     w0 = np.where(reach, pa["cat"].map(rv.to_dict()) - base0, 0.0)
     k0 = obp / w0.mean()
     pa["woba"] = k0 * w0
-    info = {"lgR_PA": float(pa["runs"].mean()), "lg_wwoba": float(pa["wwoba"].mean()), "wwoba_scale": float(1 / k_ww),
-            "lg_woba": float(pa["woba"].mean()), "woba_scale": float(1 / k0)}
+    # wOBA scale is the multiplier k (FanGraphs-style, ~1.2), so (wOBA - lgwOBA) / scale is back in runs per PA.
+    # The original scripts stored 1/k, which inflated every run total by k^2 (about 1.6-1.8x).
+    info = {"lgR_PA": float(pa["runs"].mean()), "lg_wwoba": float(pa["wwoba"].mean()), "wwoba_scale": float(k_ww),
+            "lg_woba": float(pa["woba"].mean()), "woba_scale": float(k0)}
     return pa, info
 
 
@@ -242,7 +244,23 @@ def season_parts(raw: pd.DataFrame, year: int, fetch_leaderboards: bool = True) 
             for pid, v in vals.items():
                 if pid in bat:
                     bat[pid][label] = round(v, 3)
-    return {"season": year, **{k: round(v, 6) for k, v in info.items()}, "park": park, "bat": {str(k): v for k, v in bat.items()}, "pit": {str(k): v for k, v in pit.items()}}
+    return {"season": year, "v": 2, **{k: round(v, 6) for k, v in info.items()}, "park": park, "bat": {str(k): v for k, v in bat.items()}, "pit": {str(k): v for k, v in pit.items()}}
+
+
+def upgrade(p: dict) -> dict:
+    """Parts written before v2 stored the inverse wOBA scale; rescale their run sums instead of re-downloading."""
+    if p.get("v", 1) >= 2:
+        return p
+    kb, kp = 1 / p["wwoba_scale"], 1 / p["woba_scale"]
+    for e in p["bat"].values():
+        for sp in ("all", "vsL", "vsR"):
+            if sp in e:
+                e[sp]["raa"] /= kb * kb
+                e[sp]["lg"] /= kb * kb
+    for e in p["pit"].values():
+        for x in e.values():
+            x["raa"] /= kp * kp
+    return {**p, "v": 2, "wwoba_scale": kb, "woba_scale": kp}
 
 
 def park_factors(parts: dict[int, dict]) -> dict[int, dict[str, float]]:
@@ -260,6 +278,7 @@ def park_factors(parts: dict[int, dict]) -> dict[int, dict[str, float]]:
 
 def finalize(parts: dict[int, dict]) -> dict[int, dict[str, dict]]:
     """{season: {"bat": {id: {split: {stat: v}}}, "pit": {...}}} with the stats that go into the season files."""
+    parts = {s: upgrade(p) for s, p in parts.items()}
     pfs = park_factors(parts)
     out = {}
     for s, p in parts.items():

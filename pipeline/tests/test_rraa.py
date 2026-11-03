@@ -89,6 +89,24 @@ def test_rraa():
         assert d["players"][0]["splits"]["all"]["RRAA"] != 999 and "vsL" in d["players"][0]["splits"] or "vsR" in d["players"][0]["splits"]
 
 
+def test_scale_and_upgrade():
+    p2 = rraa.season_parts(simulate(2025), 2025, fetch_leaderboards=False)
+    assert 1.0 < p2["wwoba_scale"] < 2.0 and 1.0 < p2["woba_scale"] < 2.0  # FanGraphs-style scale
+    # a v1 file (inverse scale, run sums inflated by k^2) upgrades to the same numbers
+    kb, kp = p2["wwoba_scale"], p2["woba_scale"]
+    v1 = json.loads(json.dumps(p2)); v1.pop("v"); v1["wwoba_scale"], v1["woba_scale"] = 1 / kb, 1 / kp
+    for e in v1["bat"].values():
+        for x in e.values():
+            if isinstance(x, dict) and "raa" in x:
+                x["raa"] *= kb * kb; x["lg"] *= kb * kb
+    for e in v1["pit"].values():
+        for x in e.values():
+            x["raa"] *= kp * kp
+    a, b = rraa.finalize({2025: p2}), rraa.finalize({2025: v1})
+    pid = next(iter(a[2025]["bat"]))
+    assert abs(a[2025]["bat"][pid]["all"]["RRAA"] - b[2025]["bat"][pid]["all"]["RRAA"]) < 1e-6
+
+
 def test_fld_team_adjust():
     inn = pd.DataFrame({"batter": [1, 2, 3], "team": ["A", "A", "B"], "inn": [100.0, 100.0, 50.0]})
     out = rraa.team_adjusted_fld({1: 10.0, 2: 0.0, 3: 4.0}, inn)
@@ -96,4 +114,4 @@ def test_fld_team_adjust():
 
 
 if __name__ == "__main__":
-    test_rraa(); test_fld_team_adjust(); print("ok")
+    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); print("ok")
