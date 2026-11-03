@@ -176,3 +176,4 @@ main { padding:12px 14px } .panel { padding:12px } .panel.card h3 { margin-botto
 @media (max-width: 640px) { .player-cell { min-width:0; max-width:42vw } .player-cell .pc { gap:5px } .player-cell .pc a { overflow:hidden; text-overflow:ellipsis; white-space:nowrap } .player-cell .avatar { display:none } }
 .rraa-type { display:inline-block; min-width:22px; padding:0 5px; border-radius:4px; font-size:.75em; font-weight:800; text-align:center; background:var(--c1); color:var(--accent-fg) } .rraa-type.P { background:var(--c2); color:#fff } .rraa-type.TW { background:linear-gradient(90deg, var(--c1) 50%, var(--c2) 50%); color:#fff }
 .list-editor h4, .panel.card h4 { margin:4px 0 6px; font-size:.92em; color:var(--muted) }
+.lb-filters { margin-top:8px; padding:8px 10px; background:var(--panel2); border-radius:calc(var(--radius) - 3px); display:flex; flex-direction:column; gap:6px; align-items:flex-start } .lb-filters .chips { margin-top:0; align-items:center }

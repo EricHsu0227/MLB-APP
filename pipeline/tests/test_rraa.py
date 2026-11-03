@@ -140,5 +140,16 @@ def test_refresh_and_new_keys():
         assert json.loads((root / "2025" / "rraa_parts.json").read_text())["bat"][pid]["bsr"] == 2.5
 
 
+def test_player_meta():
+    import player_meta
+    with tempfile.TemporaryDirectory() as d:
+        root = pathlib.Path(d); (root / "2025").mkdir()
+        (root / "2025" / "bat.json").write_text(json.dumps({"players": [{"id": 1, "name": "A", "team": "NYY", "splits": {}}, {"id": 2, "name": "B", "team": "NYY", "splits": {}}]}))
+        assert player_meta.apply(2025, root, lambda y: {1: {"pos": "SS", "bats": "S", "throws": "R"}}) == 1
+        ps = json.loads((root / "2025" / "bat.json").read_text())["players"]
+        assert ps[0]["pos"] == "SS" and ps[0]["bats"] == "S" and "pos" not in ps[1]
+        assert player_meta.apply(2025, root, lambda y: (_ for _ in ()).throw(RuntimeError("blocked"))) == 0
+
+
 if __name__ == "__main__":
-    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); test_refresh_and_new_keys(); print("ok")
+    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); test_refresh_and_new_keys(); test_player_meta(); print("ok")

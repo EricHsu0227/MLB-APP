@@ -6,6 +6,7 @@ import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { percentile, peerPool, sortRows, toCSV } from '../lib/stats.js';
 import { Headshot, Seg, SplitSeg, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
 import RraaBoard from '../components/RraaBoard.jsx';
+import LbFilters, { EMPTY, activeCount, makeFilter, teamGames, useLbFilters } from '../components/LbFilters.jsx';
 import { MyStatsEditor } from './Settings.jsx';
 import { pctColor } from '../lib/themes.js';
 import { MY_GROUPS, favFirst, useFavs, useGroup, useSectionOrder } from '../lib/favs.js';
@@ -27,6 +28,9 @@ export default function Leaderboard({ index }) {
   const [team, setTeam] = useState('');
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState([]);
+  const [xfRaw, setXf] = useLbFilters();
+  const xf = { ...EMPTY, ...xfRaw };
+  const [showF, setShowF] = useState(activeCount(xf) > 0);
   const [sort, setSort] = useState({ key: null, dir: -1 });
   const [shade, setShade] = usePref('tools:shade', true);
   const [inline, setInline] = usePref('tools:splits', true);
@@ -54,13 +58,14 @@ export default function Leaderboard({ index }) {
     let r = peerPool(all, split, role === 'bat' ? { minPA: min } : { minIP: min });
     if (team) r = r.filter((x) => x.team === team);
     if (q) r = r.filter((x) => x.name?.toLowerCase().includes(q.toLowerCase()));
+    if (activeCount(xf)) r = r.filter(makeFilter(xf, role, split, teamGames(all, role)));
     for (const f of filters) {
       if (!f.key || f.val === '' || Number.isNaN(+f.val)) continue;
       const d = statDef(f.key, role); const v = d.pct ? +f.val / 100 : +f.val;
       r = r.filter((x) => { const a = x.splits[split]?.[f.key]; return typeof a === 'number' && OPS[f.op](a, v); });
     }
     return sortRows(r, split, sort.key || defSort || 'WAR', sort.dir);
-  }, [all, split, min, role, team, q, filters, sort, defSort]);
+  }, [all, split, min, role, team, q, filters, sort, defSort, xfRaw]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { setPage(0); }, [rows.length, pageSize]);
   const shown = rows.slice(page * pageSize, (page + 1) * pageSize);
@@ -88,9 +93,11 @@ export default function Leaderboard({ index }) {
           <select value={team} onChange={(e) => setTeam(e.target.value)}><option value="">All teams</option>{teams.map((t) => <option key={t}>{t}</option>)}</select>
           <input placeholder="Filter by name" value={q} onChange={(e) => setQ(e.target.value)} />
           {roleSel !== 'rraa' && <button type="button" className="btn sm" onClick={() => setFilters([...filters, { key: cols[0] || 'WAR', op: '≥', val: '' }])}>+ Stat filter</button>}
+          <button type="button" className={'btn sm' + (activeCount(xf) ? ' primary' : '')} onClick={() => setShowF(!showF)}>⚲ Filters{activeCount(xf) ? ` (${activeCount(xf)})` : ''}</button>
           <label className="small row"><input type="checkbox" checked={shade} onChange={(e) => setShade(e.target.checked)} /> Percentile shading</label>
           {roleSel !== 'rraa' && <label className="small row"><input type="checkbox" checked={inline} onChange={(e) => setInline(e.target.checked)} /> Show L/R splits</label>}
         </div>
+        {showF && <LbFilters role={role} rraa={roleSel === 'rraa'} value={xf} onChange={setXf} />}
         {roleSel !== 'rraa' && filters.map((f, i) => (
           <div className="row" key={i}>
             <select value={f.key} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))}>{allKeys.map((k) => <option key={k} value={k}>{statDef(k, role).label}</option>)}</select>
@@ -99,7 +106,7 @@ export default function Leaderboard({ index }) {
             <button type="button" className="btn sm" onClick={() => setFilters(filters.filter((_, j) => j !== i))}>✕</button>
           </div>))}
       </section>
-      {roleSel === 'rraa' ? <RraaBoard seasons={seasons} lo={lo} hi={hi} split={split} team={team} q={q} /> : <>
+      {roleSel === 'rraa' ? <RraaBoard seasons={seasons} lo={lo} hi={hi} split={split} team={team} q={q} xf={xf} /> : <>
 
       <div className="tabs">
         <button type="button" className={sec === 'favs' ? 'on' : ''} onClick={() => { setSec('favs'); setSort({ key: null, dir: -1 }); }}>★ My stats</button>

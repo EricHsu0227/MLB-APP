@@ -6,7 +6,7 @@ python pipeline/rraa_refresh.py [2016-2026]
 """
 import json, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-import rraa, rraa_finalize, savant_boards
+import player_meta, rraa, rraa_finalize, savant_boards
 
 OUT = rraa_finalize.OUT
 
@@ -46,6 +46,7 @@ def main(arg: str | None = None, root=OUT):
     for y in years:
         refresh(y, root)
         savant_boards.apply(y, root)
+        player_meta.apply(y, root)
     rraa_finalize.main(root)
 
 
