@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import ApiError from '../components/ApiError.jsx';
-import { Link } from 'react-router-dom';
 import { useApi } from '../lib/mlbapi.js';
 import { gameScore, sumHitting, sumPitching } from '../lib/saber.js';
 import { heat } from '../lib/stats.js';
 import { tint } from '../lib/themes.js';
 import { Seg } from './ui.jsx';
 import { LineChart } from './charts.jsx';
-import { TeamLink } from './team.jsx';
+import { TeamLogo } from './team.jsx';
+import { teamById } from '../lib/teams.js';
 import { usePref } from '../lib/data.js';
 
 const r3 = (v) => (v == null ? '—' : v.toFixed(3).replace(/^0/, '').replace(/^-0/, '-'));
@@ -79,8 +79,8 @@ export default function GameLog({ id, role, season }) {
               {shown.map((g, i) => { const s = g.stat; const pk = g.game?.gamePk; const dec = s.wins ? 'W' : s.losses ? 'L' : s.saves ? 'SV' : s.holds ? 'H' : s.blownSaves ? 'BS' : '';
                 return (
                   <tr key={(pk || g.date) + i}>
-                    <td className="l">{pk ? <Link to={`/game/${pk}`}>{d(g.date)}</Link> : d(g.date)}</td>
-                    <td className="l">{g.isHome ? 'vs' : '@'} <TeamLink id={g.opponent?.id} size={16} /></td>
+                    <td className="l">{pk ? <a href={`https://www.mlb.com/gameday/${pk}`} target="_blank" rel="noreferrer" title="Open in MLB Gameday">{d(g.date)}</a> : d(g.date)}</td>
+                    <td className="l">{g.isHome ? 'vs' : '@'} <TeamLogo id={g.opponent?.id} size={16} /> {teamById(g.opponent?.id)?.abbr || g.opponent?.name}</td>
                     <td className="l"><span className={g.isWin ? 'upc' : 'dnc'}><b>{g.isWin ? 'W' : 'L'}</b></span></td>
                     {role === 'bat'
                       ? <>{[s.plateAppearances, s.atBats, s.runs, s.hits, s.doubles, s.triples, s.homeRuns, s.rbi, s.baseOnBalls, s.strikeOuts, s.stolenBases].map((v, j) => <td key={j} className="mono" style={j === 3 && s.hits >= 3 ? tint(90, 40) : j === 6 && s.homeRuns ? tint(90, 40) : undefined}>{v ?? 0}</td>)}

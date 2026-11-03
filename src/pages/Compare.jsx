@@ -4,11 +4,11 @@ import { load, usePref } from '../lib/data.js';
 import { statDef, splitLabel, keysOfSeasons } from '../lib/catalog.js';
 import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { heat, peerPool, percentile } from '../lib/stats.js';
+import { useFavs } from '../lib/favs.js';
 import { Bubble, Headshot, PlayerSearch, Seg, SplitSeg, StatPicker, SubSplits } from '../components/ui.jsx';
 import { tint } from '../lib/themes.js';
 import { LineChart, Radar, seriesColor } from '../components/charts.jsx';
 
-const DEFAULT_STATS = { bat: ['PA', 'AVG', 'OBP', 'SLG', 'wOBA', 'xwOBA', 'wRC+', 'K%', 'BB%', 'EV', 'Barrel%', 'HardHit%', 'HR', 'SB', 'WAR'], pit: ['IP', 'ERA', 'FIP', 'xFIP', 'K%', 'BB%', 'K-BB%', 'WHIP', 'GB%', 'SwStr%', 'FBv', 'WAR'] };
 const parse = (s) => (s || '').split(',').filter(Boolean).map((t) => { const [role, id, season] = t.split(':'); return { role, id: +id, season: +season }; }).filter((e) => (e.role === 'bat' || e.role === 'pit') && e.id);
 const enc = (es) => es.map((e) => `${e.role}:${e.id}:${e.season}`).join(',');
 
@@ -51,9 +51,10 @@ export default function Compare({ index }) {
   const pools = useSeasonPools(withPct || view === 'radar' ? entries : []);
   const roles = [...new Set(entries.map((e) => e.role))];
   const role = roles.length === 1 ? roles[0] : 'bat';
-  const [statsBat, setStatsBat] = usePref('cmp:stats:bat', DEFAULT_STATS.bat);
-  const [statsPit, setStatsPit] = usePref('cmp:stats:pit', DEFAULT_STATS.pit);
-  const stats = role === 'bat' ? statsBat : statsPit, setStats = role === 'bat' ? setStatsBat : setStatsPit;
+  const [statsBat, setStatsBat] = usePref('cmp:stats2:bat', null);
+  const [statsPit, setStatsPit] = usePref('cmp:stats2:pit', null);
+  const [favBat] = useFavs('bat'); const [favPit] = useFavs('pit');
+  const stats = (role === 'bat' ? statsBat || favBat : statsPit || favPit), setStats = role === 'bat' ? setStatsBat : setStatsPit;
   const setEntries = (es) => setQs((q) => { const n = new URLSearchParams(q); if (es.length) n.set('p', enc(es)); else n.delete('p'); return n; }, { replace: true });
   const fileOf = (e) => files[`${e.role}/${e.id}`];
   const lineOf = (e) => fileOf(e)?.seasons?.[e.season]?.splits?.[split];
@@ -142,7 +143,7 @@ export default function Compare({ index }) {
           <div className="row">
             <span className="muted small">Quick sets:</span>
             {sectionIds(role).filter((s) => s !== 'all').map((s) => <button type="button" key={s} className="btn sm" onClick={() => setStats(sectionKeys(role, s, keySet).slice(0, 40))}>{sectionLabel(role, s)}</button>)}
-            <button type="button" className="btn sm" onClick={() => setStats(DEFAULT_STATS[role])}>Default</button>
+            <button type="button" className="btn sm" onClick={() => setStats(null)}>My stats</button>
             <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : `Choose stats (${stats.length})`}</button>
             <label className="small row"><input type="checkbox" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} /> Only differences</label>
             <label className="small row"><input type="checkbox" checked={withPct} onChange={(e) => setWithPct(e.target.checked)} /> Percentiles</label>
