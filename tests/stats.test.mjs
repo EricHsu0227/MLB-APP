@@ -26,3 +26,15 @@ test('sortRows puts missing last', () => {
 test('toCSV escapes', () => {
   assert.match(toCSV([{ name: 'A "B"', team: 'X', splits: { all: { k: 1 } } }], 'all', ['k']), /"A ""B"""/);
 });
+test('pctFromRef interpolates league quantiles and flips for low-is-good', async () => {
+  const { pctFromRef, vsOwn } = await import('../src/lib/stats.js');
+  const ref = [5, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  assert.equal(pctFromRef(ref, 5, 1), 50);
+  assert.equal(pctFromRef(ref, 2.5, 1), 25);
+  assert.equal(pctFromRef(ref, 11, 1), 100);
+  assert.equal(pctFromRef(ref, 2.5, -1), 75);
+  assert.equal(pctFromRef(ref, 2.5, 0), null);
+  assert.equal(vsOwn([1, 2, 3], 3, 1), 100);
+  assert.equal(vsOwn([1, 2, 3], 2, 1), 50);
+  assert.equal(vsOwn([1, 2, 3], 1, -1), 100);
+});

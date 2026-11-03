@@ -3,7 +3,7 @@ import { DEFAULT_UI, FONTS, THEMES, applyUI } from '../lib/themes.js';
 import { usePref } from '../lib/data.js';
 
 export function useAppearance() {
-  const [ui, setUi] = usePref('ui2', DEFAULT_UI);
+  const [ui, setUi] = usePref('ui3', DEFAULT_UI);
   useEffect(() => { applyUI(ui); }, [ui]);
   useEffect(() => { // re-resolve "auto" if the OS theme flips
     if (ui.theme !== 'auto' && ui.theme) return undefined;
@@ -29,13 +29,14 @@ export default function Appearance({ ui, setUi }) {
               </button>))}
           </div>
           <div className="form">
-            <label>Accent <span className="row"><input type="color" value={ui.accent || '#2563eb'} onChange={(e) => set({ accent: e.target.value })} /><button type="button" className="btn sm" onClick={() => set({ accent: '' })}>Theme</button></span></label>
+            <label>Accent <span className="row"><input type="color" value={ui.accent || '#f5b700'} onChange={(e) => set({ accent: e.target.value })} /><button type="button" className="btn sm" onClick={() => set({ accent: '' })}>Theme</button></span></label>
             <label>Corners <input type="range" min="-1" max="22" value={ui.radius} onChange={(e) => set({ radius: +e.target.value })} /></label>
             <label>Text size <input type="range" min="12" max="18" value={ui.fontSize} onChange={(e) => set({ fontSize: +e.target.value })} /></label>
             <label>Font <select value={ui.font} onChange={(e) => set({ font: e.target.value })}>{FONTS.map(([n, v]) => <option key={n} value={v}>{n}</option>)}</select></label>
             <label>Density <select value={ui.density} onChange={(e) => set({ density: e.target.value })}><option value="compact">Compact</option><option value="cozy">Cozy</option><option value="roomy">Roomy</option></select></label>
             <label>Cards <select value={ui.cards} onChange={(e) => set({ cards: e.target.value })}><option value="default">Default</option><option value="flat">Flat</option><option value="outline">Outlined</option><option value="raised">Raised</option></select></label>
           </div>
+          <label className="tool-row"><span><b>Team colors on player pages</b></span><input type="checkbox" role="switch" checked={ui.teamColors !== false} onChange={(e) => set({ teamColors: e.target.checked })} /></label>
           <button type="button" className="btn sm" onClick={() => setUi(DEFAULT_UI)}>Reset appearance</button>
         </div>)}
     </div>

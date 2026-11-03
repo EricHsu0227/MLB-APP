@@ -1,28 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useData, usePlayerFile, usePref, useSeason } from '../lib/data.js';
-import { SPLITS, keysOfSeasons, splitLabel, statDef } from '../lib/catalog.js';
-import { sectionKeys, sectionLabel } from '../lib/sections.js';
-import { favFirst, useFavs, useSectionOrder } from '../lib/favs.js';
-import { heat, peerPool, percentile } from '../lib/stats.js';
-import { Headshot, Seg, SeasonSelect, SplitSeg, StatPicker } from '../components/ui.jsx';
-import { LineChart, Spark, seriesColor } from '../components/charts.jsx';
+import { keysOfSeasons, splitLabel, statDef } from '../lib/catalog.js';
+import { useFavs } from '../lib/favs.js';
+import { peerPool, percentile, pctFromRef } from '../lib/stats.js';
+import { Bubble, Headshot, Seg, SeasonSelect, SplitSeg, StatPicker } from '../components/ui.jsx';
 import { pctColor, tint } from '../lib/themes.js';
+import { useApi } from '../lib/mlbapi.js';
+import { teamByAbbr, teamById, teamVars } from '../lib/teams.js';
+import { TeamLogo } from '../components/team.jsx';
+import StatTable, { COLOR_MODES, cellScore, useColorMode } from '../components/StatTable.jsx';
 import GameLog from '../components/GameLog.jsx';
 import RecentGames from '../components/RecentGames.jsx';
-import Details from '../components/Details.jsx';
+import Details, { personPath } from '../components/Details.jsx';
 
-const TABS = [['overview', 'Overview'], ['percentiles', 'Percentile ranking'], ['stats', 'Stats'], ['games', 'Game logs'], ['trends', 'Trends'], ['details', 'Player details']];
-const DEFAULT_LAYOUT = { hidden: [], custom: {}, tableSplit: {} };
+const TABS = [['overview', 'Overview'], ['percentiles', 'Percentile ranking'], ['stats', 'Stats'], ['games', 'Game logs'], ['details', 'Player details']];
 const hasDir = (k, role) => !!statDef(k, role).dir;
 
-export default function Player({ index }) {
+export default function Player() {
   const { role, id: idp } = useParams();
   const id = Number(idp);
   const [qs, setQs] = useSearchParams();
   const { data: file, error } = usePlayerFile(role, id);
   const { data: pindex } = useData('players-index.json');
+  const { data: league } = useData(`league-${role}.json`);
   const [favs] = useFavs(role);
+  const [ui] = usePref('ui3', {});
+  const { data: person } = useApi(personPath(id), { ttl: 3600000, pick: (x) => x?.people?.[0] });
 
   const seasons = useMemo(() => (file ? Object.keys(file.seasons).map(Number).sort((a, b) => a - b) : []), [file]);
   const season = Number(qs.get('season')) || seasons.at(-1);
@@ -40,26 +44,34 @@ export default function Player({ index }) {
   if (!cur) return <div className="panel">No {season} data for {file.name}.</div>;
 
   const otherRole = pindex?.find((p) => p.id === id)?.r.find((r) => r !== role);
-  const line = cur.splits[split] || {};
   const age = cur.splits.all?.Age;
-  const ctx = { id, role, file, seasons, season, split, cur, allKeys, keySet, seasonFile, favs, setSeason: (y) => setParam('season', y), goto: (t) => setParam('tab', t) };
-  const heroKeys = favs.filter((k) => keySet.has(k)).slice(0, 5);
+  // multi-team seasons come as "- - -"; fall back to the team he is on now
+  const team = teamByAbbr(cur.team) || (season === seasons.at(-1) ? teamById(person?.currentTeam?.id) : null);
+  const colors = ui.teamColors !== false && team ? teamVars(team.abbr) : null;
+  const ctx = { id, role, file, seasons, season, split, cur, allKeys, keySet, seasonFile, favs, league, setSeason: (y) => setParam('season', y), goto: (t) => setParam('tab', t) };
+  const facts = [
+    person?.primaryNumber && `#${person.primaryNumber}`, person?.primaryPosition?.abbreviation,
+    person && `B/T ${person.batSide?.code || '?'}/${person.pitchHand?.code || '?'}`, age && `Age ${age}`,
+    person?.height && `${person.height}, ${person.weight} lb`,
+  ].filter(Boolean);
 
   return (
-    <>
+    <div className={'player-page' + (colors ? ' team-painted' : '')} style={colors || undefined}>
       <section className="hero-card panel">
-        <Headshot id={id} size={80} className="big" />
+        <Headshot id={id} size={72} className="big" />
         <div className="grow">
-          <h1 style={{ margin: 0 }}>{file.name}</h1>
-          <div className="muted">{cur.team} · {season}{age ? ` · Age ${age}` : ''} · {role === 'bat' ? 'Hitter' : 'Pitcher'}{otherRole && <> · <Link to={`/player/${otherRole}/${id}`}>{otherRole === 'bat' ? 'Hitting' : 'Pitching'} page</Link></>}</div>
-          <div className="row" style={{ marginTop: 8 }}>
-            <SeasonSelect seasons={seasons} value={season} onChange={(y) => setParam('season', y)} />
-            <SplitSeg role={role} value={split} onChange={(v) => setParam('split', v)} />
-            <Link className="btn" to={`/compare?p=${role}:${id}:${season}`}>Compare</Link>
+          <h1>{file.name}</h1>
+          <div className="hero-facts">
+            {team && <span className="row"><TeamLogo id={team.id} size={18} /> {team.name}</span>}
+            {!team && <span>{cur.team}</span>}
+            {facts.map((f) => <span key={f}>{f}</span>)}
+            {otherRole && <Link to={`/player/${otherRole}/${id}`}>{otherRole === 'bat' ? 'Hitting' : 'Pitching'} page →</Link>}
           </div>
         </div>
-        <div className="hero-tiles">
-          {heroKeys.map((k) => { const d = statDef(k, role); return <div className="tile" key={k} title={d.desc}><div className="k">{d.label}</div><div className="v">{d.f(line[k])}</div></div>; })}
+        <div className="hero-ctrls row">
+          <SeasonSelect seasons={seasons} value={season} onChange={(y) => setParam('season', y)} />
+          <SplitSeg role={role} value={split} onChange={(v) => setParam('split', v)} />
+          <Link className="btn" to={`/compare?p=${role}:${id}:${season}`}>Compare</Link>
         </div>
       </section>
 
@@ -68,16 +80,15 @@ export default function Player({ index }) {
       </div>
 
       {tab === 'overview' && <Overview {...ctx} />}
-      {tab === 'percentiles' && <section className="panel card"><h3>Percentile ranking</h3><PercentileTab {...ctx} /></section>}
-      {tab === 'stats' && <StatsTab {...ctx} />}
+      {tab === 'percentiles' && <PercentileTab {...ctx} />}
+      {tab === 'stats' && <StatTable {...ctx} />}
       {tab === 'games' && <section className="panel card"><h3>Game logs</h3><GameLog {...ctx} /></section>}
-      {tab === 'trends' && <TrendsTab {...ctx} />}
-      {tab === 'details' && <Details {...ctx} />}
-    </>
+      {tab === 'details' && <Details {...ctx} person={person} />}
+    </div>
   );
 }
 
-/* ---------- shared percentile bars ---------- */
+/* ---------- shared percentile bars (one season, exact pool) ---------- */
 function usePool(seasonFile, split, role, minQ) {
   const scale = split === 'all' ? 1 : 0.4;
   return useMemo(() => (seasonFile ? peerPool(seasonFile.players, split, role === 'bat' ? { minPA: minQ * scale } : { minIP: minQ * scale }) : []), [seasonFile, split, minQ, role, scale]);
@@ -98,50 +109,48 @@ function PctBars({ role, split, line, pool, keys }) {
   );
 }
 
-/* ---------- overview ---------- */
+/* ---------- overview: selected stats, percentile ranking, recent games ---------- */
 const OV_DEFAULT = { tiles: null, pct: null, games: 8, show: { tiles: true, pct: true, recent: true } };
 function Overview(ctx) {
-  const { role, season, split, file, seasons, cur, allKeys, keySet, seasonFile, favs, goto, id } = ctx;
+  const { role, season, split, cur, allKeys, keySet, seasonFile, favs, goto, id, league, file, seasons } = ctx;
   const [ov, setOv] = usePref(`ov2:${role}`, OV_DEFAULT);
   const O = { ...OV_DEFAULT, ...ov, show: { ...OV_DEFAULT.show, ...ov.show } };
   const [edit, setEdit] = useState(false);
-  const tileKeys = (O.tiles || favs).filter((k) => keySet.has(k)).slice(0, 12);
-  const pctKeys = (O.pct || favs.filter((k) => hasDir(k, role))).filter((k) => keySet.has(k)).slice(0, 14);
+  const [mode] = useColorMode();
+  const tileKeys = (O.tiles || favs).filter((k) => keySet.has(k)).slice(0, 16);
+  const pctKeys = (O.pct || favs.filter((k) => hasDir(k, role))).filter((k) => keySet.has(k)).slice(0, 18);
   const pool = usePool(seasonFile, split, role, role === 'bat' ? 100 : 30);
-  const si = seasons.indexOf(season);
   const set = (patch) => setOv({ ...O, ...patch });
+  const line = cur.splits[split] || {};
+  const lg = league?.[season]?.[split] || {};
   return (
     <>
-      <div className="row between" style={{ marginBottom: 8 }}>
-        <span className="muted small">Your favorite stats lead here. Change them in <Link to="/settings">Settings</Link>.</span>
-        <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : '⚙ Customize overview'}</button>
+      <div className="row between ov-bar">
+        <span className="muted small">{season} · {splitLabel(split, role)} · colored {COLOR_MODES.find((m) => m[0] === mode)?.[1]}</span>
+        <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : '⚙ Customize'}</button>
       </div>
       {edit && (
         <section className="panel">
           <div className="row">
-            {[['tiles', 'Stat tiles'], ['pct', 'Percentile ranking'], ['recent', 'Recent games']].map(([k, l]) => <label key={k} className="small row"><input type="checkbox" checked={O.show[k]} onChange={(e) => set({ show: { ...O.show, [k]: e.target.checked } })} /> {l}</label>)}
+            {[['tiles', 'Stats'], ['pct', 'Percentile ranking'], ['recent', 'Recent games']].map(([k, l]) => <label key={k} className="small row"><input type="checkbox" checked={O.show[k]} onChange={(e) => set({ show: { ...O.show, [k]: e.target.checked } })} /> {l}</label>)}
             <label className="small">Recent games <select value={O.games} onChange={(e) => set({ games: +e.target.value })}>{[5, 8, 10, 15, 20].map((n) => <option key={n}>{n}</option>)}</select></label>
             <button type="button" className="btn sm" onClick={() => setOv(OV_DEFAULT)}>Back to my stats</button>
           </div>
-          <div className="muted small" style={{ marginTop: 8 }}>Tiles ({tileKeys.length})</div>
-          <StatPicker keys={allKeys} role={role} value={tileKeys} onChange={(v) => set({ tiles: v })} max={12} />
+          <div className="muted small" style={{ marginTop: 8 }}>Stats ({tileKeys.length})</div>
+          <StatPicker keys={allKeys} role={role} value={tileKeys} onChange={(v) => set({ tiles: v })} max={16} />
           <div className="muted small" style={{ marginTop: 8 }}>Percentile bars ({pctKeys.length})</div>
           <StatPicker keys={allKeys.filter((k) => hasDir(k, role))} role={role} value={pctKeys} onChange={(v) => set({ pct: v })} max={24} />
         </section>)}
       {O.show.tiles && (
         <section className="panel card">
-          <div className="tiles">
+          <div className="tiles ov-tiles">
             {tileKeys.map((k) => {
-              const d = statDef(k, role);
-              const v = file.seasons[season]?.splits[split]?.[k];
-              const prev = si > 0 ? file.seasons[seasons[si - 1]]?.splits[split]?.[k] : null;
-              const delta = typeof v === 'number' && typeof prev === 'number' ? v - prev : null;
-              const trend = seasons.slice(Math.max(0, si - 7), si + 1).map((y) => file.seasons[y]?.splits[split]?.[k] ?? null);
-              const good = delta == null || !d.dir ? '' : (delta * d.dir > 0 ? 'up' : delta * d.dir < 0 ? 'down' : '');
+              const d = statDef(k, role); const v = line[k]; const ref = lg[k];
+              const sc = cellScore(mode, { ref, v, dir: d.dir, own: seasons.map((y) => file.seasons[y].splits[split]?.[k]) });
               return (
-                <div className="tile big" key={k} title={d.desc}>
+                <div className="tile big" key={k} title={d.desc} style={tint(sc, 30)}>
                   <div className="k">{d.label}</div><div className="v">{d.f(v)}</div>
-                  <div className="row between"><span className={'delta ' + good}>{delta == null ? '' : `${delta > 0 ? '▲' : delta < 0 ? '▼' : ''} ${d.f(Math.abs(delta))}`}</span><Spark values={trend} /></div>
+                  <div className="lg">{ref ? `Lg ${d.f(ref[0])}` : ' '}{mode === 'league' && sc != null ? ` · ${sc}th` : ''}</div>
                 </div>);
             })}
             {!tileKeys.length && <span className="muted">No stats selected.</span>}
@@ -152,146 +161,47 @@ function Overview(ctx) {
           {O.show.pct && <section className="panel card"><h3>Percentile ranking</h3>
             <div className="muted small">{season} · vs {pool.length || '…'} {role === 'bat' ? 'hitters' : 'pitchers'} · {splitLabel(split, role)}</div>
             <PctBars role={role} split={split} line={cur.splits[split]} pool={pool} keys={pctKeys} />
-            <button type="button" className="btn sm" onClick={() => goto('percentiles')}>Full percentile ranking →</button></section>}
+            <button type="button" className="btn sm" onClick={() => goto('percentiles')}>Every season →</button></section>}
           {O.show.recent && <section className="panel card"><h3>Recent games · {season}</h3><RecentGames id={id} role={role} season={season} n={O.games} onMore={() => goto('games')} /></section>}
         </div>)}
     </>
   );
 }
 
-/* ---------- percentile ranking tab ---------- */
-function PercentileTab({ role, season, split, cur, allKeys, seasonFile, favs }) {
+/* ---------- percentile ranking: every season at once, or one season in detail ---------- */
+function PercentileTab({ role, season, split, cur, allKeys, seasonFile, favs, file, seasons, league, setSeason }) {
   const [sel, setSel] = usePref(`pct2:${role}`, null);
+  const [view, setView] = usePref('pct:view', 'all');
   const [minQ, setMinQ] = usePref(`pct:min:${role}`, role === 'bat' ? 100 : 30);
   const [edit, setEdit] = useState(false);
-  const keys = sel || favs.filter((k) => hasDir(k, role));
-  const scale = split === 'all' ? 1 : 0.4;
+  const keys = (sel || favs.filter((k) => hasDir(k, role))).filter((k) => hasDir(k, role));
   const pool = usePool(seasonFile, split, role, minQ);
+  const ys = [...seasons].reverse();
+  const qual = (y) => { const s = file.seasons[y].splits[split] || {}; return role === 'bat' ? (s.PA ?? s.sc_PA ?? 0) >= (split === 'all' ? 100 : 40) : split === 'all' ? (s.IP ?? 0) >= 20 : (s.TBF ?? s.PA ?? 0) >= 60; };
   return (
-    <>
-      <div className="row between"><span className="muted small">{season} · vs {pool.length || '…'} {role === 'bat' ? 'hitters' : 'pitchers'} ({splitLabel(split, role)}, min {Math.round(minQ * scale)} {role === 'bat' ? 'PA' : 'IP'})</span>
-        <span className="row"><label className="small">Min {role === 'bat' ? 'PA' : 'IP'} <input type="number" style={{ width: 64 }} value={minQ} onChange={(e) => setMinQ(+e.target.value)} /></label>
+    <section className="panel card">
+      <h3>Percentile ranking</h3>
+      <div className="row between">
+        <Seg small value={view} onChange={setView} options={[['all', 'Every season'], ['one', `${season} in detail`]]} />
+        <span className="row">
+          {view === 'one' && <label className="small">Min {role === 'bat' ? 'PA' : 'IP'} <input type="number" style={{ width: 64 }} value={minQ} onChange={(e) => setMinQ(+e.target.value)} /></label>}
           {sel && <button type="button" className="btn sm" onClick={() => setSel(null)}>My stats</button>}
-          <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : 'Choose stats'}</button></span></div>
+          <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : 'Choose stats'}</button></span>
+      </div>
       {edit && <StatPicker keys={allKeys.filter((k) => hasDir(k, role))} role={role} value={keys} onChange={setSel} max={60} />}
-      <PctBars role={role} split={split} line={cur.splits[split]} pool={pool} keys={keys.filter((k) => cur.splits[split]?.[k] != null || true)} />
-    </>
-  );
-}
-
-/* ---------- stats tab: L/R snapshot + season-by-season FanGraphs/Savant sections ---------- */
-function StatsTab(ctx) {
-  const { role, keySet, favs } = ctx;
-  const [layout, setLayout] = usePref(`p2:layout:${role}`, DEFAULT_LAYOUT);
-  const L = { ...DEFAULT_LAYOUT, ...layout };
-  const set = (patch) => setLayout({ ...L, ...patch });
-  const order = useSectionOrder(role, keySet, favs);
-  const visible = order.filter((s) => !L.hidden.includes(s));
-  const [sec, setSec] = usePref(`stats:sec:${role}`, 'splits');
-  const [edit, setEdit] = useState(false);
-  const active = sec === 'splits' || visible.includes(sec) ? sec : 'splits';
-  return (
-    <>
-      <div className="tabs sub">
-        <button type="button" className={active === 'splits' ? 'on' : ''} onClick={() => setSec('splits')}>This season: All / L / R</button>
-        {visible.map((s) => <button type="button" key={s} className={active === s ? 'on' : ''} onClick={() => setSec(s)}>{sectionLabel(role, s)}</button>)}
-        <button type="button" className="gear" onClick={() => setEdit(!edit)} title="Show or hide sections">⚙</button>
-      </div>
-      {edit && <section className="panel"><div className="row">{order.map((s) => <label key={s} className="small row"><input type="checkbox" checked={!L.hidden.includes(s)} onChange={() => set({ hidden: L.hidden.includes(s) ? L.hidden.filter((x) => x !== s) : [...L.hidden, s] })} /> {sectionLabel(role, s)}</label>)}
-        <button type="button" className="btn sm" onClick={() => setLayout(DEFAULT_LAYOUT)}>Reset</button></div>
-        <div className="muted small">Sections are ordered by how many of your favorite stats they hold.</div></section>}
-      <section className="panel card"><h3>{active === 'splits' ? 'This season: All / L / R' : sectionLabel(role, active)}</h3>
-        {active === 'splits' ? <SplitsCard {...ctx} L={L} set={set} /> : <DataSection {...ctx} id={active} L={L} set={set} />}
-      </section>
-    </>
-  );
-}
-
-function SplitsCard({ role, cur, allKeys, favs, L, set }) {
-  const [secId, setSecId] = usePref(`splitsec2:${role}`, 'favs');
-  const avail = new Set(Object.values(cur.splits).flatMap((s) => Object.keys(s)));
-  const custom = L.custom[`splits:${secId}`];
-  const keys = custom || (secId === 'favs' ? favs.filter((k) => avail.has(k)) : favFirst(sectionKeys(role, secId, avail), favs));
-  const [edit, setEdit] = useState(false);
-  const [heatOn] = usePref('tools:heat', true);
-  const ids = useSectionOrder(role, avail, favs);
-  return (
-    <>
-      <div className="row"><select value={secId} onChange={(e) => setSecId(e.target.value)}><option value="favs">★ My stats</option>{ids.map((s) => <option key={s} value={s}>{sectionLabel(role, s)}</option>)}</select>
-        <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : 'Choose stats'}</button></div>
-      {edit && <StatPicker keys={allKeys} role={role} value={keys} onChange={(v) => set({ custom: { ...L.custom, [`splits:${secId}`]: v } })} />}
-      <div className="scroll"><table className="t"><thead><tr><th className="l">Stat</th>{SPLITS.map(([s]) => <th key={s}>{splitLabel(s, role)}</th>)}</tr></thead>
-        <tbody>{keys.map((k) => { const d = statDef(k, role); return <tr key={k}><td className="l" title={d.desc}>{d.label}</td>{SPLITS.map(([s]) => <td key={s} className="mono" style={heatOn ? tint(heat(SPLITS.map(([x]) => cur.splits[x]?.[k]), cur.splits[s]?.[k], d.dir)) : undefined}>{d.f(cur.splits[s]?.[k])}</td>)}</tr>; })}</tbody></table></div>
-      <div className="muted small">Not every stat has an L/R split; missing ones show “—”.</div>
-    </>
-  );
-}
-
-function DataSection({ role, id, seasons, season, split, file, allKeys, keySet, favs, L, set, setSeason }) {
-  const secSplit = L.tableSplit[id] || 'page';
-  const sp = secSplit === 'page' ? split : secSplit;
-  const keys = L.custom[id] || favFirst(sectionKeys(role, id, keySet), favs);
-  const [edit, setEdit] = useState(false);
-  const [rev, setRev] = usePref('table:rev', false);
-  const [withSplits, setWithSplits] = usePref('tools:splits', true);
-  const [heatOn, setHeatOn] = usePref('tools:heat', true);
-  const ys = rev ? [...seasons].reverse() : seasons;
-  const rowSplits = [sp, ...(withSplits ? SPLITS.map(([x]) => x).filter((x) => x !== sp) : [])];
-  const colVals = (sx, k) => seasons.map((y) => file.seasons[y].splits[sx]?.[k]);
-  if (!keys.length && !edit) return <div className="muted">No {sectionLabel(role, id)} stats in this player’s data. <button type="button" className="btn sm" onClick={() => setEdit(true)}>Choose stats</button></div>;
-  return (
-    <>
-      <div className="row">
-        <select value={secSplit} onChange={(e) => set({ tableSplit: { ...L.tableSplit, [id]: e.target.value } })} title="Split for this table">
-          <option value="page">Split: page ({splitLabel(split, role)})</option>{SPLITS.map(([s]) => <option key={s} value={s}>{splitLabel(s, role)}</option>)}
-        </select>
-        <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : `Choose stats (${keys.length})`}</button>
-        <button type="button" className="btn sm" onClick={() => setRev(!rev)}>{rev ? 'Newest first' : 'Oldest first'}</button>
-        <label className="small row"><input type="checkbox" checked={withSplits} onChange={(e) => setWithSplits(e.target.checked)} /> L/R splits</label>
-        <label className="small row"><input type="checkbox" checked={heatOn} onChange={(e) => setHeatOn(e.target.checked)} /> Color</label>
-        {L.custom[id] && <button type="button" className="btn sm" onClick={() => { const c = { ...L.custom }; delete c[id]; set({ custom: c }); }}>Reset stats</button>}
-      </div>
-      {edit && <StatPicker keys={allKeys} role={role} value={keys} onChange={(v) => set({ custom: { ...L.custom, [id]: v } })} />}
-      <div className="scroll"><table className="t sticky-first"><thead><tr><th className="l">Season</th><th className="l">Team</th>{withSplits && <th className="l">Split</th>}{keys.map((k) => <th key={k} className={favs.includes(k) ? 'fav' : ''} title={statDef(k, role).desc}>{statDef(k, role).label}</th>)}</tr></thead>
-        <tbody>{ys.map((y) => { const e = file.seasons[y]; return rowSplits.map((sx, ri) => (
-          <tr key={`${y}${sx}`} className={(y === season ? 'sel' : '') + (ri ? ' subrow' : ' toprow')} onClick={() => setSeason(y)}>
-            <td className="l">{ri === 0 && <b>{y}</b>}</td><td className="l">{ri === 0 && e.team}</td>
-            {withSplits && <td className="l"><span className={`splitpill ${sx}`}>{splitLabel(sx, role)}</span></td>}
-            {keys.map((k) => { const d = statDef(k, role); const v = e.splits[sx]?.[k]; return <td key={k} className="mono" style={heatOn ? tint(heat(colVals(sx, k), v, d.dir)) : undefined}>{d.f(v)}</td>; })}</tr>)); })}</tbody></table></div>
-      <div className="muted small">Click a row to select that season. Favorite stats are listed first.</div>
-    </>
-  );
-}
-
-/* ---------- trends: one small chart per stat ---------- */
-function TrendsTab({ role, seasons, file, allKeys, split, favs, keySet }) {
-  const [sel, setSel] = usePref(`trend2:${role}`, null);
-  const [cols, setCols] = usePref('trend2:cols', 3);
-  const [mode, setMode] = usePref('trend:mode', 'page');
-  const [edit, setEdit] = useState(false);
-  const keys = (sel || favs).filter((k) => keySet.has(k)).slice(0, 24);
-  const splits = mode === 'all3' ? SPLITS.map((s) => s[0]) : [split];
-  return (
-    <>
-      <div className="row between" style={{ marginBottom: 8 }}>
-        <span className="row"><Seg small value={mode} onChange={setMode} options={[['page', 'Selected split'], ['all3', 'All / L / R']]} />
-          <label className="small">Columns <select value={cols} onChange={(e) => setCols(+e.target.value)}>{[1, 2, 3, 4].map((n) => <option key={n}>{n}</option>)}</select></label></span>
-        <span className="row">{sel && <button type="button" className="btn sm" onClick={() => setSel(null)}>My stats</button>}<button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : '⚙ Choose stats'}</button></span>
-      </div>
-      {edit && <section className="panel"><StatPicker keys={allKeys} role={role} value={keys} onChange={setSel} max={24} /></section>}
-      <div className="grid" style={{ '--cols': cols }}>
-        {keys.map((k) => {
-          const d = statDef(k, role);
-          const series = splits.map((sp) => ({ label: splitLabel(sp, role), points: seasons.map((y) => ({ x: y, y: file.seasons[y]?.splits[sp]?.[k] ?? null })) }));
-          return (
-            <section className="panel card" key={k}>
-              <h3 title={d.desc}>{d.label}</h3>
-              <LineChart series={series} fmt={d.f} height={cols > 2 ? 150 : 190} />
-              {mode === 'all3' && <div className="legend">{series.map((s, i) => <span key={i}><i style={{ background: seriesColor(i) }} />{s.label}</span>)}</div>}
-            </section>);
-        })}
-        {!keys.length && <div className="panel muted">No stats selected.</div>}
-      </div>
-    </>
+      {view === 'one' ? (
+        <>
+          <div className="muted small">{season} · vs {pool.length || '…'} {role === 'bat' ? 'hitters' : 'pitchers'} ({splitLabel(split, role)})</div>
+          <PctBars role={role} split={split} line={cur.splits[split]} pool={pool} keys={keys} />
+        </>) : (
+        <>
+          <div className="scroll tall"><table className="t sticky-first pct-years"><thead><tr><th className="l">Stat</th>{ys.map((y) => <th key={y} className={y === season ? 'active' : ''} onClick={() => setSeason(y)} style={{ cursor: 'pointer' }}>{y}</th>)}</tr></thead>
+            <tbody>{keys.map((k) => { const d = statDef(k, role); return (
+              <tr key={k}><td className="l" title={d.desc}>{d.label}</td>
+                {ys.map((y) => { const v = file.seasons[y].splits[split]?.[k]; const p = pctFromRef(league?.[y]?.[split]?.[k], v, d.dir); return (
+                  <td key={y} className={qual(y) ? '' : 'unq'} title={`${y}: ${d.f(v)}${p != null ? ` · ${p}th percentile` : ''}${qual(y) ? '' : ' (below the qualifying line)'}`}>{v == null ? '' : <Bubble p={p} size={26} />}</td>); })}</tr>); })}</tbody></table></div>
+          <div className="muted small">Each bubble ranks that season against the league’s regulars ({role === 'bat' ? '100+ PA' : '20+ IP'}; {splitLabel(split, role)}). Faded seasons are below that line. Hover for the value.</div>
+        </>)}
+    </section>
   );
 }

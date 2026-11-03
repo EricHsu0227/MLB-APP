@@ -113,5 +113,26 @@ def test_fld_team_adjust():
     assert abs(out[1] - 5.0) < 1e-9 and abs(out[2] + 5.0) < 1e-9 and abs(out[3]) < 1e-9
 
 
+def test_refresh_and_new_keys():
+    import rraa_refresh
+    with tempfile.TemporaryDirectory() as d:
+        root = pathlib.Path(d)
+        (root / "2025").mkdir()
+        parts = rraa.season_parts(simulate(2025), 2025, fetch_leaderboards=False)
+        pid = next(iter(parts["bat"]))
+        (root / "2025" / "rraa_parts.json").write_text(json.dumps(parts))
+        (root / "2025" / "bat.json").write_text(json.dumps({"players": [{"id": int(pid), "splits": {"all": {"RRAA_BsR": 99.0}}}]}))
+        (root / "2025" / "pit.json").write_text(json.dumps({"players": []}))
+        rraa_refresh.refresh(2025, root, bsr=lambda y: {int(pid): 2.5}, frv=lambda y: {int(pid): -3.0})
+        rraa_finalize.main(root)
+        s = json.loads((root / "2025" / "bat.json").read_text())["players"][0]["splits"]["all"]
+        assert s["RRAA_BsR"] == 2.5 and s["RRAA_FRV"] == -3.0
+        assert abs(s["RRAA_Bat"] - (s["RRAA_wRAA"] + s["RRAA_Park"] + s["RRAA_Lg"])) < 1e-3
+        assert abs(s["RRAA"] - (s["RRAA_Bat"] + s["RRAA_BsR"] + s["RRAA_Fld"])) < 1e-3
+        # a failed fetch keeps the old values
+        rraa_refresh.refresh(2025, root, bsr=lambda y: (_ for _ in ()).throw(RuntimeError("blocked")), frv=lambda y: {})
+        assert json.loads((root / "2025" / "rraa_parts.json").read_text())["bat"][pid]["bsr"] == 2.5
+
+
 if __name__ == "__main__":
-    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); print("ok")
+    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); test_refresh_and_new_keys(); print("ok")

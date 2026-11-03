@@ -5,3 +5,4 @@ pipeline/cache
 public/data/leaders.json
 public/data/players
 public/data/players-index.json
+public/data/league-*.json

@@ -57,3 +57,30 @@ export function heat(values, v, dir) {
   const p = ((v - lo) / (hi - lo)) * 100;
   return Math.round(dir < 0 ? 100 - p : p);
 }
+
+/** Approximate league percentile of v from a league reference [avg, q0, q10, ..., q100] (direction-aware). */
+export function pctFromRef(ref, v, dir) {
+  if (!ref || !dir || typeof v !== 'number' || !Number.isFinite(v)) return null;
+  const q = ref.slice(1);
+  let p;
+  if (v <= q[0]) p = 0;
+  else if (v >= q[10]) p = 100;
+  else {
+    let i = 0; while (i < 9 && v > q[i + 1]) i++;
+    const span = q[i + 1] - q[i];
+    p = (i + (span ? (v - q[i]) / span : 0.5)) * 10;
+  }
+  p = Math.round(p);
+  return dir < 0 ? 100 - p : p;
+}
+
+/** 0-100 score of v against the player's own average across seasons (50 = his average). */
+export function vsOwn(values, v, dir) {
+  if (!dir || typeof v !== 'number') return null;
+  const xs = values.filter((x) => typeof x === 'number' && Number.isFinite(x));
+  if (xs.length < 2) return null;
+  const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const dev = Math.max(...xs.map((x) => Math.abs(x - mean)));
+  if (!dev) return 50;
+  return Math.round(50 + 50 * ((v - mean) / dev) * (dir < 0 ? -1 : 1));
+}

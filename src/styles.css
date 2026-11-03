@@ -121,7 +121,42 @@ main { padding:12px 14px } .panel { padding:12px } .panel.card h3 { margin-botto
 .ptabs { margin:0 0 8px; padding:0 0 4px } .tabs.sub { padding:0 0 6px } .tabs .gear { padding:4px 10px }
 .tile { padding:5px 10px; min-width:68px } .tile.big { min-width:112px; flex:1 1 112px; max-width:190px; padding:6px 10px }
 .pct-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:0 22px } .ov-grid .pct-grid { grid-template-columns:1fr } .pct { margin:3px 0 }
-.t th.fav { color:var(--accent); box-shadow:inset 0 -2px var(--accent) }
-.fav-list { display:flex; flex-wrap:wrap; gap:6px } .fav { display:inline-flex; gap:5px; align-items:center; padding:2px 4px 2px 8px; border:1px solid var(--line); border-radius:99px; background:var(--panel2); font-size:.88em } .fav b { color:var(--accent) } .fav button { border:0; background:transparent; cursor:pointer; color:var(--muted); padding:0 3px; font:inherit } .fav button:hover { color:var(--accent) }
+.t th.fav, .t th.favcol { color:var(--accent); box-shadow:inset 0 -2px var(--accent) }
+.fav-list { display:flex; flex-wrap:wrap; gap:6px } .fav-list .fav { display:inline-flex; gap:5px; align-items:center; padding:2px 4px 2px 8px; border:1px solid var(--line); border-radius:99px; background:var(--panel2); font-size:.88em } .fav b { color:var(--accent) } .fav button { border:0; background:transparent; cursor:pointer; color:var(--muted); padding:0 3px; font:inherit } .fav button:hover { color:var(--accent) }
 .legend { display:flex; gap:12px; flex-wrap:wrap; font-size:.82em } .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px }
 .grid { grid-auto-flow:dense }
+/* player page v3 */
+.player-page.team-painted .hero-card { background:linear-gradient(120deg, color-mix(in srgb, var(--team) 85%, var(--panel)) 0%, color-mix(in srgb, var(--team) 35%, var(--panel)) 45%, var(--panel) 80%); border-color:color-mix(in srgb, var(--accent) 45%, var(--line)) }
+.player-page.team-painted .hero-card h1 { color:#fff } .player-page.team-painted .hero-facts { color:#ffffffcc }
+.hero-card h1 { margin:0; line-height:1.15 } .hero-facts { display:flex; flex-wrap:wrap; gap:4px 14px; color:var(--muted); font-size:.92em; margin-top:2px } .hero-facts a { font-weight:600 }
+.hero-ctrls { margin-left:auto }
+.selbar { display:flex; gap:4px; overflow-x:auto; padding-bottom:6px; margin-bottom:6px; border-bottom:1px solid var(--line); scrollbar-width:thin }
+.selbar button { border:1px solid transparent; background:transparent; color:var(--muted); padding:5px 11px; border-radius:99px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap }
+.selbar button:hover { color:var(--fg) } .selbar button.on { background:var(--accent); color:var(--accent-fg) }
+.layouts { margin-bottom:6px } .layouts .chip { font-size:.9em; padding:3px 11px } .ctrls { margin-bottom:6px }
+.t tr.lgrow td { border-top:2px solid var(--line); color:var(--muted); font-style:italic }
+.t tr.subtotal td { background:var(--panel2); border-bottom:2px solid var(--line) }
+.pct-years td { text-align:center; padding:3px 4px } .pct-years td.unq { opacity:.4 } .pct-years th { text-align:center }
+.ov-tiles .tile.big { max-width:none; flex:1 1 118px } .tile .lg { font-size:.72em; color:var(--muted); white-space:nowrap }
+.ov-bar { margin-bottom:6px }
+.gl-filters { margin-bottom:6px } .gl-chart { margin:6px 0 } .gflag { margin-left:6px; font-size:.7em; font-weight:800; padding:0 5px; border-radius:4px; background:var(--accent); color:var(--accent-fg) }
+.t.kv td:first-child { width:38% }
+/* phones */
+@media (max-width:640px) {
+  :root { --cell:3px 6px }
+  main { padding:8px } .panel { padding:9px; margin-bottom:8px; border-radius:calc(var(--radius) - 2px) }
+  .nav { gap:6px 10px; position:static } .brand { font-size:1em } .appearance .btn { padding:3px 8px }
+  h1 { font-size:1.4em } .hero-card { gap:10px } .hero-card .avatar.big { width:54px; height:54px } .hero-ctrls { margin-left:0; width:100% }
+  .hero-ctrls .seg button { padding:3px 8px }
+  table.t { font-size:.86em } .scroll.tall { max-height:68vh }
+  .pct-grid { grid-template-columns:1fr } .pct { grid-template-columns:96px 1fr 50px; gap:6px }
+  .tile.big, .ov-tiles .tile.big { flex:1 1 30%; min-width:92px; padding:5px 7px } .tile .v { font-size:1.2em }
+  .tabs button { padding:5px 10px } .ptabs { position:sticky; top:0; z-index:15; background:var(--bg); padding-top:4px }
+  .tools { right:10px; bottom:10px } .tools-fab { width:44px; height:44px; font-size:1.15em }
+  .pop { position:fixed; left:8px; right:8px; top:60px; width:auto }
+  .search-pop { min-width:0 }
+  .row { gap:6px }
+  .foot { padding:16px 8px }
+}
+.player-page.team-painted .tabs button.on, .player-page .ptabs button.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent) }
+.gl-chart .chart { max-height:210px }

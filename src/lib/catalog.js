@@ -8,13 +8,14 @@ const D2 = dash((v) => v.toFixed(2));
 const INT = dash((v) => String(Math.round(v)));
 const GEN = dash((v) => (Number.isInteger(v) ? String(v) : v.toFixed(2)));
 
-const RATE3_KEYS = new Set('wwOBA RRAA_wOBA AVG OBP SLG OPS wOBA xwOBA xAVG xSLG ISO BABIP sc_wOBA sc_xwOBA'.split(' '));
+const RATE3_KEYS = new Set('wwOBA RRAA_wOBA lg_wwOBA lg_wOBA AVG OBP SLG OPS wOBA xwOBA xAVG xSLG ISO BABIP sc_wOBA sc_xwOBA'.split(' '));
 const D2_KEYS = new Set('ERA FIP xFIP SIERA tERA xERA kwERA WHIP K/9 BB/9 HR/9 H/9 K/BB BB/K GB/FB RS/9 E-F pb_ERA'.split(' '));
-const D1_KEYS = new Set('RRAA RRAA_Bat RRAA_BsR RRAA_Fld WAR RAR wRAA wRC IP Spd EV maxEV EV90 LA sc_EV sc_maxEV sc_EV90 sc_LA AvgBatSpeed SwingLength AttackAngle AttackDirection Tilt BaseRunning Batting Fielding Positional Offense Defense Replacement Dollars WPA -WPA +WPA RE24 REW Clutch wBsR UBR XBR pLI phLI exLI gmLI inLI Start-IP Relief-IP DepthInBox DistanceOffPlate'.split(' '));
+const D1_KEYS = new Set('RRAA RRAA_Bat RRAA_BsR RRAA_Fld RRAA_wRAA RRAA_Park RRAA_Lg RRAA_FRV WAR RAR wRAA wRC IP Spd EV maxEV EV90 LA sc_EV sc_maxEV sc_EV90 sc_LA AvgBatSpeed SwingLength AttackAngle AttackDirection Tilt BaseRunning Batting Fielding Positional Offense Defense Replacement Dollars WPA -WPA +WPA RE24 REW Clutch wBsR UBR XBR pLI phLI exLI gmLI inLI Start-IP Relief-IP DepthInBox DistanceOffPlate'.split(' '));
 
 const GLOSS = {
   RRAA: 'Runs Above Average (Eric\'s metric). Hitters: batting runs from wwOBA with park and league adjustments, plus Savant baserunning and team-adjusted fielding runs. Pitchers: runs saved from wOBA allowed with a park adjustment',
   RRAA_Bat: 'RRAA batting runs: wwOBA runs above average + park + league adjustment', RRAA_BsR: 'RRAA base running runs (Savant Baserunning Run Value)', RRAA_Fld: 'RRAA fielding runs (Savant FRV minus team average per inning)',
+  RRAA_wRAA: 'RRAA runs above average before the park and league adjustments', RRAA_Park: 'RRAA park adjustment (runs), from 3-year regressed park factors for every park the player played in', RRAA_Lg: 'RRAA league adjustment (runs): AL vs NL non-pitcher run environment', RRAA_PA: 'Plate appearances counted by RRAA', RRAA_FRV: 'Savant Fielding Run Value before the team adjustment', lg_wwOBA: 'League wwOBA this season', lg_wOBA: 'League wOBA this season',
   wwOBA: 'wOBA that also weights strikeouts, double plays and productive outs (RRAA run values)', RRAA_wOBA: 'wOBA allowed on the RRAA run-value scale',
   WAR: 'Wins Above Replacement (FanGraphs)', 'wRC+': 'Weighted Runs Created Plus; 100 = league average', wOBA: 'Weighted On-Base Average', xwOBA: 'Expected wOBA from exit velocity, launch angle and speed',
   xAVG: 'Expected batting average', xSLG: 'Expected slugging', ISO: 'Isolated power (SLG - AVG)', BABIP: 'Batting average on balls in play', 'K%': 'Strikeout rate', 'BB%': 'Walk rate',
@@ -24,12 +25,13 @@ const GLOSS = {
   'K-BB%': 'Strikeout rate minus walk rate', WHIP: 'Walks + hits per inning', sp_stuff: 'Stuff+ (FanGraphs); 100 = average', sp_location: 'Location+ (FanGraphs); 100 = average', sp_pitching: 'Pitching+ (FanGraphs); 100 = average',
   AvgBatSpeed: 'Average bat speed (mph)', SwingLength: 'Average swing length (feet)', 'BlastContact%': 'Share of contact that is a blast', Spd: 'Speed score',
 };
+const LABELS = { sp_stuff: 'Stuff+', sp_location: 'Location+', sp_pitching: 'Pitching+', pb_stuff: 'PB Stuff', pb_command: 'PB Command', pb_overall: 'PitchingBot', RRAA_wRAA: 'RRAA wRAA', RRAA_Park: 'RRAA Park', RRAA_Lg: 'RRAA League', RRAA_PA: 'RRAA PA', RRAA_FRV: 'FRV (raw)', RRAA_Bat: 'RRAA Bat', RRAA_BsR: 'RRAA BsR', RRAA_Fld: 'RRAA Fld', RRAA_wOBA: 'RRAA wOBA', lg_wwOBA: 'Lg wwOBA', lg_wOBA: 'Lg wOBA' };
 const PREFIX = [[/^sc_/, '', ' (calc)'], [/^pfx/, '', ' (PFX)'], [/^pi(?=[A-Za-z])/, '', ' (PI)'], [/^sp_/, 'Stuff+ ', ''], [/^pb_/, 'PB ', '']];
 
 // Direction a stat is "good" in. 1 = higher is better, -1 = lower is better, 0 = neutral/context.
 const BAT_LOW = /^(sc_)?(K%|K%\+|SwStr%|Soft%|Soft%\+|IFFB%|IFFB|GDP|CS|O-Swing%|GB%|GB%\+|PU%|Whiff%|BU|SO|Strikes|Balls|Swords|CStr%)$/;
-const PIT_LOW = /^(RRAA_wOBA|ERA|ERA-|FIP|FIP-|xFIP|xFIP-|SIERA|tERA|xERA|kwERA|WHIP|WHIP\+|BB%|BB%\+|BB\/9|BB\/9\+|HR\/9|HR\/9\+|H\/9|H\/9\+|AVG|AVG\+|OBP|SLG|OPS|BABIP|HR\/FB|HRFB%\+|Hard%|Hard%\+|Barrel%|HardHit%|EV|EV90|maxEV|LD%|LD%\+|R|ER|H|HR|BB|HBP|WP|BK|BS|L|E-F|Pull%|sc_BB%|sc_wOBA|sc_xwOBA|sc_Barrel%|sc_HardHit%|sc_EV|sc_EV90|sc_maxEV|wOBA|xwOBA|xAVG|xSLG|Zone%)$/;
-const NEUTRAL = /^(Season|Age|G|GS|Games|Pos|PA|AB|TPA|TBF|IP|Pitches|BBE|bipCount|Events|playerTeamId|teamid|SeasonMin|SeasonMax|Q|Pull%|Cent%|Oppo%|Med%|FB%|GB\/FB|Tilt|AttackDirection|DepthInBox|DistanceOffPlate|sc_PA|sc_BBE|sc_Pitches|sc_Swing%|sc_LA|LA)$/;
+const PIT_LOW = /^(RRAA_wOBA|RRAA_Park|ERA|ERA-|FIP|FIP-|xFIP|xFIP-|SIERA|tERA|xERA|kwERA|WHIP|WHIP\+|BB%|BB%\+|BB\/9|BB\/9\+|HR\/9|HR\/9\+|H\/9|H\/9\+|AVG|AVG\+|OBP|SLG|OPS|BABIP|HR\/FB|HRFB%\+|Hard%|Hard%\+|Barrel%|HardHit%|EV|EV90|maxEV|LD%|LD%\+|R|ER|H|HR|BB|HBP|WP|BK|BS|L|E-F|Pull%|sc_BB%|sc_wOBA|sc_xwOBA|sc_Barrel%|sc_HardHit%|sc_EV|sc_EV90|sc_maxEV|wOBA|xwOBA|xAVG|xSLG|Zone%)$/;
+const NEUTRAL = /^(RRAA_PA|lg_wwOBA|lg_wOBA|Season|Age|G|GS|Games|Pos|PA|AB|TPA|TBF|IP|Pitches|BBE|bipCount|Events|playerTeamId|teamid|SeasonMin|SeasonMax|Q|Pull%|Cent%|Oppo%|Med%|FB%|GB\/FB|Tilt|AttackDirection|DepthInBox|DistanceOffPlate|sc_PA|sc_BBE|sc_Pitches|sc_Swing%|sc_LA|LA)$/;
 
 export function direction(key, role = 'bat') {
   if (NEUTRAL.test(key) || /^(pi|pfx)/.test(key)) return 0;
@@ -56,8 +58,8 @@ export function statDef(key, role = 'bat') {
   const calc = key.startsWith('sc_');
   const base = key.replace(/^sc_/, '');
   const f = pickFormat(key);
-  let label = key;
-  for (const [re, pre, suf] of PREFIX) if (re.test(key)) { label = pre + key.replace(re, '') + suf; break; }
+  let label = LABELS[key] || key;
+  if (!LABELS[key]) for (const [re, pre, suf] of PREFIX) if (re.test(key)) { label = pre + key.replace(re, '') + suf; break; }
   return { key, calc, label, f, pct: f === PCT, dir: direction(key, role), lowGood: direction(key, role) < 0, desc: GLOSS[key] || GLOSS[base] || '', group: calc ? 'Calculated' : '' };
 }
 
@@ -74,3 +76,7 @@ export const keysOfSeasons = (seasonsObj) => {
   for (const e of Object.values(seasonsObj)) for (const sp of Object.values(e.splits)) for (const k of Object.keys(sp)) s.add(k);
   return s;
 };
+
+// Counting stats (totals that grow with playing time). Everything else is treated as a rate.
+const COUNT = /^(G|GS|AB|PA|TBF|IP|H|1B|2B|3B|HR|R|RBI|BB|IBB|SO|HBP|SF|SH|GDP|SB|CS|W|L|SV|HLD|BS|CG|ShO|ER|WP|BK|Pitches|Balls|Strikes|Barrels|HardHit|IFH|BUH|Pull|Cent|Oppo|Soft|Med|Hard|GB|FB|LD|IFFB|BU|TB|WAR|WAROld|RAR|RRAA|RRAA_.*|wRAA|wRC|Batting|BaseRunning|Fielding|Positional|Offense|Defense|Replacement|Dollars|WPA|-WPA|\+WPA|RE24|REW|Clutch|wBsR|UBR|XBR|GDPRuns|CFraming|bipCount|Events|BBE|Starting|Relieving|Start-IP|Relief-IP|RA9-Wins|BIP-Wins|LOB-Wins|BS-Wins|w[A-Z]{2}|(pi|pfx)w[A-Z]+|sc_(PA|BBE|Pitches))$/;
+export const isCount = (key) => COUNT.test(key);

@@ -168,8 +168,9 @@ def savant_board(url: str) -> pd.DataFrame:
 
 
 def savant_bsr(year: int) -> dict[int, float]:
+    # season_start/season_end pick the season; startYear/endYear are ignored and return the current season
     d = savant_board("https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?game_type=Regular&n=1&team=&type=Runner"
-                     f"&sortColumn=runner_runs_tot&sortDirection=desc&split=no&startYear={year}&endYear={year}&csv=true")
+                     f"&sortColumn=runner_runs_tot&sortDirection=desc&split=no&season_start={year}&season_end={year}&csv=true")
     pid = _pick(d.columns, "player_id", "entity_id", "runner_id", "id") or _find(d.columns, "player_id", "entity_id", "runner_id", exclude=("team",))
     tot = _pick(d.columns, "runner_runs_tot", "runner_runs_total", "baserunning_run_value", "total_runs", "runs_total") or _find(d.columns, "runs_tot", "total_runs", "run_value")
     if None in (pid, tot):
@@ -235,7 +236,13 @@ def season_parts(raw: pd.DataFrame, year: int, fetch_leaderboards: bool = True) 
     pit = _sides(pa, "pitcher", "stand", "woba", "raa_p", None)
 
     if fetch_leaderboards:
-        for label, fn in (("bsr", lambda: savant_bsr(year)), ("fld", lambda: team_adjusted_fld(savant_frv(year), fielding_innings(raw)))):
+        frv_raw: dict[int, float] = {}
+
+        def fld():
+            frv_raw.update(savant_frv(year))
+            return team_adjusted_fld(frv_raw, fielding_innings(raw))
+
+        for label, fn in (("bsr", lambda: savant_bsr(year)), ("fld", fld)):
             try:
                 vals = fn()
             except Exception as e:  # noqa: BLE001
@@ -244,6 +251,9 @@ def season_parts(raw: pd.DataFrame, year: int, fetch_leaderboards: bool = True) 
             for pid, v in vals.items():
                 if pid in bat:
                     bat[pid][label] = round(v, 3)
+        for pid, v in frv_raw.items():
+            if pid in bat:
+                bat[pid]["frv"] = round(v, 3)
     return {"season": year, "v": 2, **{k: round(v, 6) for k, v in info.items()}, "park": park, "bat": {str(k): v for k, v in bat.items()}, "pit": {str(k): v for k, v in pit.items()}}
 
 
@@ -291,13 +301,18 @@ def finalize(parts: dict[int, dict]) -> dict[int, dict[str, dict]]:
                 x = e.get(sp)
                 if not x:
                     continue
-                runs = x["raa"] + park_sum(x["parks"], -1) + x["lg"]
-                row[sp] = {"wwOBA": x["w"], "RRAA_Bat": runs}
+                park = park_sum(x["parks"], -1)
+                runs = x["raa"] + park + x["lg"]
+                row[sp] = {"wwOBA": x["w"], "RRAA_Bat": runs, "RRAA_wRAA": x["raa"], "RRAA_Park": park, "RRAA_Lg": x["lg"], "RRAA_PA": x["PA"]}
                 if sp == "all":
                     bsr, fld = e.get("bsr", 0.0), e.get("fld", 0.0)
-                    row[sp].update({"RRAA_BsR": bsr, "RRAA_Fld": fld, "RRAA": runs + bsr + fld})
+                    row[sp].update({"RRAA_BsR": bsr, "RRAA_Fld": fld, "RRAA": runs + bsr + fld, "lg_wwOBA": p["lg_wwoba"]})
+                    if "frv" in e:
+                        row[sp]["RRAA_FRV"] = e["frv"]
             bat[int(pid)] = row
         for pid, e in p["pit"].items():
-            pit[int(pid)] = {sp: {"RRAA": x["raa"] + park_sum(x["parks"], 1), "RRAA_wOBA": x["w"]} for sp, x in e.items()}
+            pit[int(pid)] = {sp: {"RRAA": x["raa"] + park_sum(x["parks"], 1), "RRAA_wOBA": x["w"], "RRAA_wRAA": x["raa"],
+                                  "RRAA_Park": park_sum(x["parks"], 1), "RRAA_PA": x["PA"], **({"lg_wOBA": p["lg_woba"]} if sp == "all" else {})}
+                             for sp, x in e.items()}
         out[s] = {"bat": bat, "pit": pit}
     return out
