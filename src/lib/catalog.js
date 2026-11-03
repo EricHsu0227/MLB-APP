@@ -10,7 +10,8 @@ const GEN = dash((v) => (Number.isInteger(v) ? String(v) : v.toFixed(2)));
 
 const RATE3_KEYS = new Set('wwOBA RRAA_wOBA lg_wwOBA lg_wOBA AVG OBP SLG OPS wOBA xwOBA xAVG xSLG ISO BABIP sc_wOBA sc_xwOBA'.split(' '));
 const D2_KEYS = new Set('ERA FIP xFIP SIERA tERA xERA kwERA WHIP K/9 BB/9 HR/9 H/9 K/BB BB/K GB/FB RS/9 E-F pb_ERA'.split(' '));
-const D1_KEYS = new Set('RRAA RRAA_Bat RRAA_BsR RRAA_Fld RRAA_wRAA RRAA_Park RRAA_Lg RRAA_FRV WAR RAR wRAA wRC IP Spd EV maxEV EV90 LA sc_EV sc_maxEV sc_EV90 sc_LA AvgBatSpeed SwingLength AttackAngle AttackDirection Tilt BaseRunning Batting Fielding Positional Offense Defense Replacement Dollars WPA -WPA +WPA RE24 REW Clutch wBsR UBR XBR pLI phLI exLI gmLI inLI Start-IP Relief-IP DepthInBox DistanceOffPlate'.split(' '));
+const RRAA_RUNS = new Set('RRAA RRAA_Bat RRAA_BsR RRAA_Fld RRAA_wRAA RRAA_Park RRAA_Lg RRAA_FRV'.split(' '));
+const D1_KEYS = new Set('WAR RAR wRAA wRC IP Spd EV maxEV EV90 LA sc_EV sc_maxEV sc_EV90 sc_LA AvgBatSpeed SwingLength AttackAngle AttackDirection Tilt BaseRunning Batting Fielding Positional Offense Defense Replacement Dollars WPA -WPA +WPA RE24 REW Clutch wBsR UBR XBR pLI phLI exLI gmLI inLI Start-IP Relief-IP DepthInBox DistanceOffPlate'.split(' '));
 
 const GLOSS = {
   RRAA: 'Runs Above Average (Eric\'s metric). Hitters: batting runs from wwOBA with park and league adjustments, plus Savant baserunning and team-adjusted fielding runs. Pitchers: runs saved from wOBA allowed with a park adjustment',
@@ -76,6 +77,7 @@ function pickFormat(key) {
     if (/ (Spin|Pitches)$|^sv_(OAA|Throws|Bolts|CompRuns|FramingPitches)$/.test(key)) return INT;
     return D1;
   }
+  if (RRAA_RUNS.has(key)) return INT; // RRAA run totals show as whole runs
   if (RATE3_KEYS.has(key)) return RATE3;
   if (D2_KEYS.has(key)) return D2;
   if (D1_KEYS.has(key)) return D1;
