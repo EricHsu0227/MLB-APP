@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SPLITS, splitLabel, statDef } from '../lib/catalog.js';
-import { SECTIONS, noSplit, pickerGroups, sectionFamily } from '../lib/sections.js';
+import { SECTIONS, noSplit, pickerGroups } from '../lib/sections.js';
 import { pctColor } from '../lib/themes.js';
 import { headshot, useData } from '../lib/data.js';
 
@@ -108,7 +108,7 @@ export function StatPicker({ keys, role, value, onChange, max = Infinity }) {
           const isOpen = ql ? true : open[g.id] ?? !g.folded;
           const n = ks.filter((k) => on.has(k)).length;
           return (
-            <div key={g.id} className={`pick-group fam-${sectionFamily(g.id)}`}>
+            <div key={g.id} className="pick-group">
               <div className="pick-head">
                 <button type="button" className="link-btn" onClick={() => setOpen({ ...open, [g.id]: !isOpen })}>{isOpen ? '\u25BE' : '\u25B8'} {g.label}</button>
                 <span className="muted small">{n ? `${n} of ${ks.length}` : ks.length}</span>
@@ -134,15 +134,11 @@ export function SubSplits({ line, k, d, main, role }) {
 }
 
 /** Section switcher: every section visible at once as wrapping buttons; pitch-level sections on their own row. */
-const FAM_ORDER = ['value', 'basic', 'statcast', 'batted', 'disc', 'field', 'pitch'];
 export function SectionTabs({ items, more = [], value, onChange, moreLabel = 'Pitch data' }) {
-  const btn = ([id, label]) => <button type="button" role="tab" aria-selected={value === id} key={id} className={`fam-${sectionFamily(id)}` + (value === id ? ' on' : '')} onClick={() => onChange(id)}>{label}</button>;
-  // group by colour family so related sections sit together; "My stats" stays first
-  const rank = (id) => (id === 'favs' ? -1 : FAM_ORDER.indexOf(sectionFamily(id)) + 1 || 99);
-  const sorted = items.map((it, i) => [it, i]).sort((a, b) => rank(a[0][0]) - rank(b[0][0]) || a[1] - b[1]).map(([it]) => it);
+  const btn = ([id, label]) => <button type="button" role="tab" aria-selected={value === id} key={id} className={value === id ? 'on' : ''} onClick={() => onChange(id)}>{label}</button>;
   return (
     <div className="sectabs" role="tablist">
-      <div className="sectabs-row">{sorted.map(btn)}</div>
+      <div className="sectabs-row">{items.map(btn)}</div>
       {more.length > 0 && <div className="sectabs-row more"><span className="sectabs-lbl">{moreLabel}</span>{more.map(btn)}</div>}
     </div>
   );

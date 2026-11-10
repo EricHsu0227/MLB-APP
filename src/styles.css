@@ -59,11 +59,6 @@ input[type=checkbox] { accent-color:var(--accent) }
 .sectabs-row { display:flex; flex-wrap:wrap; gap:4px; align-items:center }
 .sectabs-row button { border:1px solid var(--line); background:var(--panel); color:var(--muted); border-radius:var(--radius); padding:4px 10px; cursor:pointer; font:inherit; font-size:.85em; font-weight:600; white-space:nowrap }
 .sectabs-row button:hover { color:var(--fg); border-color:var(--muted) } .sectabs-row button.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent) }
-.fam-value { --fam:#d4a017 } .fam-basic { --fam:#3b82f6 } .fam-statcast { --fam:#ef4444 } .fam-batted { --fam:#22a35a }
-.fam-disc { --fam:#a855f7 } .fam-field { --fam:#f97316 } .fam-pitch { --fam:#14b8a6 } .fam-other { --fam:var(--muted) }
-.sectabs-row button[class*=fam-] { border-left:3px solid var(--fam) }
-.sectabs-row button.on { background:color-mix(in srgb, var(--fam) 24%, var(--panel)); color:var(--fg); border-color:var(--fam) }
-.pick-group[class*=fam-] .pick-head > .link-btn:first-child { border-left:3px solid var(--fam); padding-left:7px }
 .sectabs-row.more button { font-size:.8em; padding:3px 8px } .sectabs-lbl { font-size:.75em; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-right:4px }
 
 /* chips (stat pickers, position filters) */
