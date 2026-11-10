@@ -40,7 +40,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>)}
       </main>
-      <footer className="foot muted small">Data from FanGraphs, Baseball Savant and MLB. Stats they don’t publish (such as RRAA and L/R Statcast splits) are calculated from pitch-level data.</footer>
+      <footer className="foot muted small">Data from FanGraphs, Baseball Savant and MLB. Stats they don’t publish (such as RRAA and L/R Statcast splits) are calculated from pitch-level data.<div className="build">Version {__BUILD__}</div></footer>
     </>
   );
 }
