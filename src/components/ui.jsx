@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SPLITS, splitLabel, statDef } from '../lib/catalog.js';
-import { SECTIONS, sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
+import { SECTIONS, pickerGroups } from '../lib/sections.js';
 import { pctColor } from '../lib/themes.js';
 import { headshot, useData } from '../lib/data.js';
 
@@ -83,29 +83,42 @@ export function PlayerSearch({ onPick, placeholder = 'Search players…', role, 
 export const playerHref = (role, id, season, split) => `/player/${role}/${id}${season || split ? '?' : ''}${[season && `season=${season}`, split && split !== 'all' && `split=${split}`].filter(Boolean).join('&')}`;
 export const PlayerLink = ({ role, id, season, split, children }) => <Link to={playerHref(role, id, season, split)}>{children}</Link>;
 
-/** Search + toggle chips over stat keys, grouped by section. */
+/** Stat picker: search, then the stats grouped in sections. Pitch-level sections start folded. */
 export function StatPicker({ keys, role, value, onChange, max = Infinity }) {
   const [q, setQ] = useState('');
-  const [sec, setSec] = useState('all');
+  const [open, setOpen] = useState({});
   const on = new Set(value);
-  const avail = useMemo(() => new Set(keys), [keys]);
-  const base = useMemo(() => (sec === 'all' ? keys : sectionKeys(role, sec, avail)), [sec, keys, role, avail]);
-  const ql = q.toLowerCase();
-  const shown = base.filter((k) => !ql || k.toLowerCase().includes(ql) || statDef(k, role).label.toLowerCase().includes(ql));
+  const groups = useMemo(() => pickerGroups(role, keys), [role, keys]);
+  const ql = q.trim().toLowerCase();
+  const hit = (k) => !ql || k.toLowerCase().includes(ql) || statDef(k, role).label.toLowerCase().includes(ql);
   const toggle = (k) => onChange(on.has(k) ? value.filter((x) => x !== k) : value.length < max ? [...value, k] : value);
+  const chip = (k) => { const d = statDef(k, role); return <span key={k} title={d.desc || k} className={'chip' + (on.has(k) ? ' on' : '')} onClick={() => toggle(k)}>{d.label}</span>; };
   return (
     <div className="picker">
       <div className="row">
-        <input placeholder={`Search ${keys.length} stats…`} value={q} onChange={(e) => setQ(e.target.value)} />
-        <select value={sec} onChange={(e) => setSec(e.target.value)}>
-          <option value="all">Every stat</option>
-          {sectionIds(role).filter((s) => s !== 'all').map((s) => <option key={s} value={s}>{sectionLabel(role, s)}</option>)}
-        </select>
-        <button type="button" className="btn sm" onClick={() => onChange([...new Set([...value, ...shown])].slice(0, max))}>Add shown</button>
-        <button type="button" className="btn sm" onClick={() => onChange([])}>Clear</button>
-        <span className="muted small">{value.length} selected</span>
+        <input placeholder="Search stats" value={q} onChange={(e) => setQ(e.target.value)} />
+        <span className="muted small">{value.length} selected{Number.isFinite(max) ? ` of ${max} max` : ''}</span>
+        {value.length > 0 && <button type="button" className="btn sm" onClick={() => onChange([])}>Clear</button>}
       </div>
-      <div className="chips">{shown.slice(0, 600).map((k) => { const d = statDef(k, role); return <span key={k} title={d.desc || k} className={'chip' + (on.has(k) ? ' on' : '')} onClick={() => toggle(k)}>{d.label}</span>; })}</div>
+      {value.length > 0 && !ql && <div className="pick-sel"><span className="muted small">Selected</span><div className="chips">{value.map(chip)}</div></div>}
+      <div className="pick-groups">
+        {groups.map((g) => {
+          const ks = g.keys.filter(hit);
+          if (!ks.length) return null;
+          const isOpen = ql ? true : open[g.id] ?? !g.folded;
+          const n = ks.filter((k) => on.has(k)).length;
+          return (
+            <div key={g.id} className="pick-group">
+              <div className="pick-head">
+                <button type="button" className="link-btn" onClick={() => setOpen({ ...open, [g.id]: !isOpen })}>{isOpen ? '\u25BE' : '\u25B8'} {g.label}</button>
+                <span className="muted small">{n ? `${n} of ${ks.length}` : ks.length}</span>
+                {isOpen && <button type="button" className="link-btn small" onClick={() => onChange(n === ks.length ? value.filter((k) => !ks.includes(k)) : [...new Set([...value, ...ks])].slice(0, max))}>{n === ks.length ? 'Remove all' : 'Add all'}</button>}
+              </div>
+              {isOpen && <div className="chips">{ks.map(chip)}</div>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
