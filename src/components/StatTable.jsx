@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { unCalc, usePref } from '../lib/data.js';
 import { SPLITS, splitLabel, statDef } from '../lib/catalog.js';
-import { PITCH_SECS, SECTIONS, sectionKeys, sectionLabel } from '../lib/sections.js';
+import { PITCH_SECS, SECTIONS, noSplit, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { favFirst } from '../lib/favs.js';
 import { pctFromRef, vsOwn } from '../lib/stats.js';
 import { tint } from '../lib/themes.js';
@@ -55,7 +55,8 @@ export default function StatTable({ role, file, seasons, season, split, keySet, 
   const rename = (name) => { setLayouts(layouts.map((l) => (l === lay ? { ...l, name: name || l.name } : l))); setNaming(null); };
 
   const ys = rev ? seasons : [...seasons].reverse();
-  const rowSplits = [split, ...(withSplits ? SPLITS.map(([x]) => x).filter((x) => x !== split) : [])];
+  const splitRows = withSplits && keys.some((k) => !noSplit(k));
+  const rowSplits = [split, ...(splitRows ? SPLITS.map(([x]) => x).filter((x) => x !== split) : [])];
   const own = (sx, k) => seasons.map((y) => file.seasons[y].splits[sx]?.[k]);
   const refOf = (y, sx, k) => league?.[y]?.[sx]?.[k];
   const lgRow = league?.[season]?.[split];
@@ -83,19 +84,20 @@ export default function StatTable({ role, file, seasons, season, split, keySet, 
       </div>
       {edit && <StatPicker keys={allKeys} role={role} value={keys} onChange={setKeys} />}
       {!keys.length ? <div className="muted pad">No {active === 'custom' ? 'stats in this layout yet' : `${sectionLabel(role, active)} stats in this player’s data`}. Use “Choose stats”.</div> : (
-        <div className="scroll tall"><table className="t sticky-first"><thead><tr><th className="l">Season</th><th className="l">Team</th>{withSplits && <th className="l">Split</th>}
+        <div className="scroll tall"><table className="t sticky-first"><thead><tr><th className="l">Season</th><th className="l">Team</th>{splitRows && <th className="l">Split</th>}
           {keys.map((k) => <th key={k} className={favs.includes(k) ? 'favcol' : ''} title={statDef(k, role).desc || k}>{statDef(k, role).label}</th>)}</tr></thead>
           <tbody>
             {ys.map((y) => { const e = file.seasons[y]; return rowSplits.map((sx, ri) => (
               <tr key={`${y}${sx}`} className={(y === season ? 'sel' : '') + (ri ? ' subrow' : ' toprow')} onClick={() => setSeason(y)}>
                 <td className="l">{ri === 0 && <b>{y}</b>}</td><td className="l">{ri === 0 && e.team}</td>
-                {withSplits && <td className="l"><span className={`splitpill ${sx}`}>{splitLabel(sx, role)}</span></td>}
+                {splitRows && <td className="l"><span className={`splitpill ${sx}`}>{splitLabel(sx, role)}</span></td>}
                 {keys.map((k) => {
+                  if (ri && noSplit(k)) return <td key={k} />;
                   const d = statDef(k, role); const v = e.splits[sx]?.[k]; const ref = refOf(y, sx, k);
                   const sc = cellScore(mode, { ref, v, dir: d.dir, own: own(sx, k) });
                   return <td key={k} className="mono" style={tint(sc)} title={ref ? `${y} league avg ${d.f(ref[0])}${mode === 'league' && sc != null ? ` · ${sc}th percentile` : ''}` : undefined}>{d.f(v)}</td>;
                 })}</tr>)); })}
-            {mode === 'league' && lgRow && <tr className="lgrow"><td className="l"><b>Lg avg</b></td><td className="l muted">{season}</td>{withSplits && <td className="l" />}
+            {mode === 'league' && lgRow && <tr className="lgrow"><td className="l"><b>Lg avg</b></td><td className="l muted">{season}</td>{splitRows && <td className="l" />}
               {keys.map((k) => <td key={k} className="mono">{lgRow[k] ? statDef(k, role).f(lgRow[k][0]) : ''}</td>)}</tr>}
           </tbody></table></div>)}
       <div className="muted small">{mode === 'league' ? 'Red = better than the league average that season, blue = worse (regulars only). ' : mode === 'own' ? 'Red = better than his own average across these seasons, blue = worse. ' : ''}Tap a row to select that season.</div>

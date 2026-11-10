@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SPLITS, splitLabel, statDef } from '../lib/catalog.js';
-import { SECTIONS, pickerGroups } from '../lib/sections.js';
+import { SECTIONS, noSplit, pickerGroups, sectionFamily } from '../lib/sections.js';
 import { pctColor } from '../lib/themes.js';
 import { headshot, useData } from '../lib/data.js';
 
@@ -108,7 +108,7 @@ export function StatPicker({ keys, role, value, onChange, max = Infinity }) {
           const isOpen = ql ? true : open[g.id] ?? !g.folded;
           const n = ks.filter((k) => on.has(k)).length;
           return (
-            <div key={g.id} className="pick-group">
+            <div key={g.id} className={`pick-group fam-${sectionFamily(g.id)}`}>
               <div className="pick-head">
                 <button type="button" className="link-btn" onClick={() => setOpen({ ...open, [g.id]: !isOpen })}>{isOpen ? '\u25BE' : '\u25B8'} {g.label}</button>
                 <span className="muted small">{n ? `${n} of ${ks.length}` : ks.length}</span>
@@ -126,33 +126,24 @@ export { SECTIONS };
 
 /** Small "L .xxx · R .xxx" line under a value; each split is green/red vs the main value. */
 export function SubSplits({ line, k, d, main, role }) {
+  if (noSplit(k)) return null;
   const items = SPLITS.filter(([x]) => x !== 'all').map(([x]) => ({ x, v: line?.[x]?.[k] }));
   if (!items.some((i) => typeof i.v === 'number')) return null;
   const cls = (v) => (typeof v !== 'number' || typeof main !== 'number' || !d.dir || v === main ? '' : (v - main) * d.dir > 0 ? ' good' : ' bad');
   return <div className="sub">{items.map(({ x, v }) => <span key={x} className={'s' + cls(v)} title={splitLabel(x, role)}>{x === 'vsL' ? 'L' : 'R'} {d.f(v)}</span>)}</div>;
 }
 
-/** Section switcher. Wide screens: a wrapping row of tabs, with `more` (pitch-level sections) in a dropdown.
- *  Phones: one dropdown with everything, so nothing scrolls sideways or gets clipped. */
+/** Section switcher: every section visible at once as wrapping buttons; pitch-level sections on their own row. */
+const FAM_ORDER = ['value', 'basic', 'statcast', 'batted', 'disc', 'field', 'pitch'];
 export function SectionTabs({ items, more = [], value, onChange, moreLabel = 'Pitch data' }) {
-  const inMore = more.some(([id]) => id === value);
+  const btn = ([id, label]) => <button type="button" role="tab" aria-selected={value === id} key={id} className={`fam-${sectionFamily(id)}` + (value === id ? ' on' : '')} onClick={() => onChange(id)}>{label}</button>;
+  // group by colour family so related sections sit together; "My stats" stays first
+  const rank = (id) => (id === 'favs' ? -1 : FAM_ORDER.indexOf(sectionFamily(id)) + 1 || 99);
+  const sorted = items.map((it, i) => [it, i]).sort((a, b) => rank(a[0][0]) - rank(b[0][0]) || a[1] - b[1]).map(([it]) => it);
   return (
-    <div className="sectabs">
-      <div className="sectabs-wide" role="tablist">
-        {items.map(([id, label]) => <button type="button" role="tab" aria-selected={value === id} key={id} className={value === id ? 'on' : ''} onClick={() => onChange(id)}>{label}</button>)}
-        {more.length > 0 && (
-          <select className={'sectabs-more' + (inMore ? ' on' : '')} value={inMore ? value : ''} onChange={(e) => e.target.value && onChange(e.target.value)} aria-label={moreLabel}>
-            <option value="">{moreLabel}</option>
-            {more.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-          </select>)}
-      </div>
-      <label className="sectabs-narrow">
-        <span className="muted small">Section</span>
-        <select value={value} onChange={(e) => onChange(e.target.value)}>
-          {items.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-          {more.length > 0 && <optgroup label={moreLabel}>{more.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</optgroup>}
-        </select>
-      </label>
+    <div className="sectabs" role="tablist">
+      <div className="sectabs-row">{sorted.map(btn)}</div>
+      {more.length > 0 && <div className="sectabs-row more"><span className="sectabs-lbl">{moreLabel}</span>{more.map(btn)}</div>}
     </div>
   );
 }
