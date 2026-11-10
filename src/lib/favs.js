@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { usePref } from './data.js';
+import { unCalc, usePref } from './data.js';
 import { SECTIONS, sectionIds, sectionKeys } from './sections.js';
 
 /** The stats the person cares about most, in priority order. Set in Settings; every page leans toward them. */
@@ -7,7 +7,7 @@ export const DEFAULT_FAVS = {
   bat: ['RRAA', 'wRC+', 'wOBA', 'xwOBA', 'AVG', 'OBP', 'SLG', 'K%', 'BB%', 'EV', 'Barrel%', 'HardHit%', 'Spd', 'WAR'],
   pit: ['RRAA', 'ERA', 'FIP', 'xFIP', 'xERA', 'K%', 'BB%', 'K-BB%', 'WHIP', 'GB%', 'SwStr%', 'FBv', 'WAR'],
 };
-export const useFavs = (role) => usePref(`fav:${role}`, DEFAULT_FAVS[role]);
+export const useFavs = (role) => { const [v, set] = usePref(`fav:${role}`, DEFAULT_FAVS[role]); return [unCalc(v), set]; };
 
 /** Favorites first (in their priority order), then everything else in its original order. */
 export const favFirst = (keys, favs) => { const have = new Set(keys); return [...favs.filter((k) => have.has(k)), ...keys.filter((k) => !favs.includes(k))]; };
@@ -25,7 +25,7 @@ export function useSectionOrder(role, avail, favs) {
 export const MY_GROUPS = ['playerValue', 'realAbility'];
 export function useGroup(role, id) {
   const [edits, setEdits] = usePref(`p3:edits:${role}`, {});
-  const keys = edits[id] || SECTIONS[role][id]?.keys || [];
+  const keys = unCalc(edits[id] || SECTIONS[role][id]?.keys || []);
   const set = (v) => setEdits({ ...edits, [id]: v });
   const reset = () => { const e = { ...edits }; delete e[id]; setEdits(e); };
   return [keys, set, reset, !!edits[id]];

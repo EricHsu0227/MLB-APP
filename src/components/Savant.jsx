@@ -186,7 +186,7 @@ export function SplitsTab({ role, id, season }) {
 }
 
 /* ---------------- similar players (client side, from the season file) ---------------- */
-const SIM_KEYS = { bat: ['sc_xwOBA', 'sc_EV', 'sc_Barrel%', 'sc_HardHit%', 'sc_K%', 'sc_BB%', 'sc_Whiff%', 'sc_O-Swing%', 'sc_LA', 'Spd'], pit: ['sc_xwOBA', 'sc_K%', 'sc_BB%', 'sc_Whiff%', 'sc_O-Swing%', 'sc_GB%', 'sc_Barrel%', 'FBv', 'sc_HardHit%'] };
+const SIM_KEYS = { bat: ['xwOBA', 'EV', 'Barrel%', 'HardHit%', 'K%', 'BB%', 'Whiff%', 'O-Swing%', 'LA', 'Spd'], pit: ['xwOBA', 'K%', 'BB%', 'Whiff%', 'O-Swing%', 'GB%', 'Barrel%', 'FBv', 'HardHit%'] };
 export function similarPlayers(seasonFile, role, id, n = 8) {
   if (!seasonFile) return [];
   const keys = SIM_KEYS[role];

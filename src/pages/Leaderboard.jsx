@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useRows, usePref } from '../lib/data.js';
-import { statDef, statKeys, splitLabel } from '../lib/catalog.js';
+import { unCalc, useRows, usePref } from '../lib/data.js';
+import { statDef, statKeys } from '../lib/catalog.js';
 import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { percentile, peerPool, sortRows, toCSV } from '../lib/stats.js';
-import { Headshot, Seg, SplitSeg, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
+import { SplitSelect, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
 import RraaBoard from '../components/RraaBoard.jsx';
 import LbFilters, { EMPTY, activeCount, makeFilter, teamGames, useLbFilters } from '../components/LbFilters.jsx';
 import { MyStatsEditor } from './Settings.jsx';
-import { pctColor } from '../lib/themes.js';
+import { shadeStyle } from '../lib/themes.js';
 import { MY_GROUPS, favFirst, useFavs, useGroup, useSectionOrder } from '../lib/favs.js';
 
 const OPS = { '≥': (a, b) => a >= b, '≤': (a, b) => a <= b, '=': (a, b) => Math.abs(a - b) < 1e-9 };
@@ -32,8 +32,8 @@ export default function Leaderboard({ index }) {
   const xf = { ...EMPTY, ...xfRaw };
   const [showF, setShowF] = useState(activeCount(xf) > 0);
   const [sort, setSort] = useState({ key: null, dir: -1 });
-  const [shade, setShade] = usePref('tools:shade', true);
-  const [inline, setInline] = usePref('tools:splits', true);
+  const [shade, setShade] = usePref('lb:shade', true);
+  const [inline, setInline] = usePref('lb:lr', false);
   const [pageSize, setPageSize] = usePref('lb:ps', 50);
   const [page, setPage] = useState(0);
   const [edit, setEdit] = useState(false);
@@ -48,7 +48,7 @@ export default function Leaderboard({ index }) {
   const [ra] = useGroup(role, 'realAbility');
   const groupKeys = { playerValue: pv, realAbility: ra };
   const mine = sec === 'favs' || MY_GROUPS.includes(sec);
-  const secKeys = sec === 'custom' ? (custom || []) : sec === 'favs' ? favs.filter((k) => keySet.has(k)) : groupKeys[sec] ? groupKeys[sec].filter((k) => keySet.has(k)) : favFirst(sectionKeys(role, sec, keySet), favs);
+  const secKeys = sec === 'custom' ? (unCalc(custom) || []) : sec === 'favs' ? favs.filter((k) => keySet.has(k)) : groupKeys[sec] ? groupKeys[sec].filter((k) => keySet.has(k)) : favFirst(sectionKeys(role, sec, keySet), favs);
   const cols = secKeys.length > 80 && sec === 'all' ? secKeys.slice(0, 80) : secKeys;
   const teams = useMemo(() => [...new Set(all.map((r) => r.team).filter(Boolean))].sort(), [all]);
   const multi = lo !== hi;
@@ -81,48 +81,60 @@ export default function Leaderboard({ index }) {
   const download = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([toCSV(rows.map((r) => ({ ...r, name: multi ? `${r.name} (${r.season})` : r.name })), split, cols)], { type: 'text/csv' })); a.download = `${lo}-${hi}-${role}-${split}.csv`; a.click(); };
   const activeSort = sort.key || defSort;
 
+  const pickRole = (r) => { setRole(r); setSec('favs'); setSort({ key: null, dir: -1 }); setFilters([]); setPicked({}); };
+  const nf = activeCount(xf) + filters.length;
+
   return (
     <>
-      <section className="panel toolbar">
-        <div className="row"><Seg value={roleSel} options={[['bat', 'Hitters'], ['pit', 'Pitchers'], ['rraa', 'RRAA']]} onChange={(r) => { setRole(r); setSec('favs'); setSort({ key: null, dir: -1 }); setFilters([]); setPicked({}); }} />
-          <label className="row small">Seasons <select value={from} onChange={(e) => { const v = +e.target.value; setFrom(v); if (v > to) setTo(v); }}>{seasons.map((y) => <option key={y}>{y}</option>)}</select>
-            to <select value={to} onChange={(e) => { const v = +e.target.value; setTo(v); if (v < from) setFrom(v); }}>{seasons.map((y) => <option key={y}>{y}</option>)}</select></label>
-          <SplitSeg role={role} value={split} onChange={setSplit} /></div>
-        <div className="row">
-          {roleSel !== 'rraa' && <label className="small">Min {role === 'bat' ? 'PA' : 'IP'} <input type="number" style={{ width: 70 }} value={min} onChange={(e) => setMin(+e.target.value)} /></label>}
-          <select value={team} onChange={(e) => setTeam(e.target.value)}><option value="">All teams</option>{teams.map((t) => <option key={t}>{t}</option>)}</select>
-          <input placeholder="Filter by name" value={q} onChange={(e) => setQ(e.target.value)} />
-          {roleSel !== 'rraa' && <button type="button" className="btn sm" onClick={() => setFilters([...filters, { key: cols[0] || 'WAR', op: '≥', val: '' }])}>+ Stat filter</button>}
-          <button type="button" className={'btn sm' + (activeCount(xf) ? ' primary' : '')} onClick={() => setShowF(!showF)}>⚲ Filters{activeCount(xf) ? ` (${activeCount(xf)})` : ''}</button>
-          <label className="small row"><input type="checkbox" checked={shade} onChange={(e) => setShade(e.target.checked)} /> Percentile shading</label>
-          {roleSel !== 'rraa' && <label className="small row"><input type="checkbox" checked={inline} onChange={(e) => setInline(e.target.checked)} /> Show L/R splits</label>}
-        </div>
-        {showF && <LbFilters role={role} rraa={roleSel === 'rraa'} value={xf} onChange={setXf} />}
-        {roleSel !== 'rraa' && filters.map((f, i) => (
-          <div className="row" key={i}>
-            <select value={f.key} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))}>{allKeys.map((k) => <option key={k} value={k}>{statDef(k, role).label}</option>)}</select>
-            <select value={f.op} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, op: e.target.value } : x)))}>{Object.keys(OPS).map((o) => <option key={o}>{o}</option>)}</select>
-            <input style={{ width: 90 }} placeholder={statDef(f.key, role).pct ? 'percent, e.g. 25' : 'value'} value={f.val} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, val: e.target.value } : x)))} />
-            <button type="button" className="btn sm" onClick={() => setFilters(filters.filter((_, j) => j !== i))}>✕</button>
-          </div>))}
-      </section>
+      <h1 className="page-title">Leaderboards</h1>
+      <div className="tabs main" role="tablist">
+        {[['bat', 'Batting'], ['pit', 'Pitching'], ['rraa', 'RRAA']].map(([v, l]) => <button type="button" role="tab" key={v} className={roleSel === v ? 'on' : ''} onClick={() => pickRole(v)}>{l}</button>)}
+      </div>
+      <div className="toolbar">
+        <label>Season <select value={from} onChange={(e) => { const v = +e.target.value; setFrom(v); if (v > to) setTo(v); }}>{[...seasons].reverse().map((y) => <option key={y}>{y}</option>)}</select>
+          <span className="muted">to</span> <select value={to} onChange={(e) => { const v = +e.target.value; setTo(v); if (v < from) setFrom(v); }}>{[...seasons].reverse().map((y) => <option key={y}>{y}</option>)}</select></label>
+        <label>Split <SplitSelect role={role} value={split} onChange={setSplit} /></label>
+        <label>Team <select value={team} onChange={(e) => setTeam(e.target.value)}><option value="">All</option>{teams.map((t) => <option key={t}>{t}</option>)}</select></label>
+        {roleSel !== 'rraa' && <label>Min {role === 'bat' ? 'PA' : 'IP'} <input type="number" style={{ width: 64 }} value={min} onChange={(e) => setMin(+e.target.value)} /></label>}
+        <button type="button" className={'btn sm' + (nf ? ' primary' : '')} onClick={() => setShowF(!showF)}>Filters{nf ? ` (${nf})` : ''}</button>
+        <input className="grow-input" type="search" placeholder="Find a player" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+      {showF && (
+        <div className="filter-panel">
+          <LbFilters role={role} rraa={roleSel === 'rraa'} value={xf} onChange={setXf} />
+          {roleSel !== 'rraa' && (
+            <div className="stat-filters">
+              {filters.map((f, i) => (
+                <div className="row" key={i}>
+                  <select value={f.key} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))}>{allKeys.map((k) => <option key={k} value={k}>{statDef(k, role).label}</option>)}</select>
+                  <select value={f.op} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, op: e.target.value } : x)))}>{Object.keys(OPS).map((o) => <option key={o}>{o}</option>)}</select>
+                  <input style={{ width: 90 }} placeholder={statDef(f.key, role).pct ? 'percent, e.g. 25' : 'value'} value={f.val} onChange={(e) => setFilters(filters.map((x, j) => (j === i ? { ...x, val: e.target.value } : x)))} />
+                  <button type="button" className="btn sm" aria-label="Remove filter" onClick={() => setFilters(filters.filter((_, j) => j !== i))}>Remove</button>
+                </div>))}
+              <div className="row">
+                <button type="button" className="btn sm" onClick={() => setFilters([...filters, { key: cols[0] || 'WAR', op: '≥', val: '' }])}>Add a stat filter</button>
+                <label className="small row"><input type="checkbox" checked={shade} onChange={(e) => setShade(e.target.checked)} /> Percentile shading</label>
+                <label className="small row"><input type="checkbox" checked={inline} onChange={(e) => setInline(e.target.checked)} /> L/R splits under each number</label>
+              </div>
+            </div>)}
+        </div>)}
       {roleSel === 'rraa' ? <RraaBoard seasons={seasons} lo={lo} hi={hi} split={split} team={team} q={q} xf={xf} /> : <>
 
-      <div className="tabs">
-        <button type="button" className={sec === 'favs' ? 'on' : ''} onClick={() => { setSec('favs'); setSort({ key: null, dir: -1 }); }}>★ My stats</button>
-        {MY_GROUPS.map((g) => <button type="button" key={g} className={sec === g ? 'on' : ''} onClick={() => { setSec(g); setSort({ key: null, dir: -1 }); }}>★ {sectionLabel(role, g)}</button>)}
+      <div className="tabs secs">
+        <button type="button" className={sec === 'favs' ? 'on' : ''} onClick={() => { setSec('favs'); setSort({ key: null, dir: -1 }); }}>My stats</button>
+        {MY_GROUPS.map((g) => <button type="button" key={g} className={sec === g ? 'on' : ''} onClick={() => { setSec(g); setSort({ key: null, dir: -1 }); }}>{sectionLabel(role, g)}</button>)}
         {secOrder.map((s) => <button type="button" key={s} className={sec === s ? 'on' : ''} onClick={() => { setSec(s); setSort({ key: null, dir: -1 }); }}>{sectionLabel(role, s)}</button>)}
-        <button type="button" className={sec === 'custom' ? 'on' : ''} onClick={() => { if (!custom) setCustom(cols.length ? cols : ['WAR']); setSec('custom'); setEdit(true); }}>★ Custom</button>
+        <button type="button" className={sec === 'custom' ? 'on' : ''} onClick={() => { if (!custom) setCustom(cols.length ? cols : ['WAR']); setSec('custom'); setEdit(true); }}>Custom</button>
       </div>
       {mine && edit && <section className="panel"><MyStatsEditor role={role} season={hi} group={sec} bare /></section>}
       {(sec === 'custom' || edit) && sec === 'custom' && <section className="panel"><StatPicker keys={allKeys} role={role} value={custom || []} onChange={setCustom} /></section>}
 
       <section className="panel nopad">
         <div className="row between pad">
-          <span className="muted small">{loading ? `Loading ${loaded}/${total} seasons…` : `${rows.length.toLocaleString()} ${multi ? 'player-seasons' : 'players'} · ${splitLabel(split, role)} · ${cols.length} columns`}</span>
+          <span className="muted small">{loading ? `Loading ${loaded}/${total} seasons…` : `${rows.length.toLocaleString()} ${multi ? 'player-seasons' : 'players'}`}</span>
           <span className="row">
             {sel.length > 0 && <button type="button" className="btn primary sm" onClick={() => nav(`/compare?p=${sel.slice(0, 8).map((k) => { const [id, y] = k.split(':'); return `${role}:${id}:${y}`; }).join(',')}`)}>Compare {Math.min(sel.length, 8)} selected</button>}
-            {mine && <button type="button" className={'btn sm' + (edit ? ' primary' : '')} onClick={() => setEdit(!edit)}>{edit ? 'Done' : `✎ Edit ${sec === 'favs' ? 'my stats' : sectionLabel(role, sec).toLowerCase()}`}</button>}
+            {mine && <button type="button" className={'btn sm' + (edit ? ' primary' : '')} onClick={() => setEdit(!edit)}>{edit ? 'Done' : 'Edit columns'}</button>}
             <button type="button" className="btn sm" onClick={download}>CSV</button></span>
         </div>
         {error && <div className="pad">Couldn’t load: {String(error.message)}</div>}
@@ -134,12 +146,12 @@ export default function Leaderboard({ index }) {
               <tr key={rowKey(r)} className={picked[rowKey(r)] ? 'sel' : ''}>
                 <td className="c"><input type="checkbox" checked={!!picked[rowKey(r)]} onChange={(e) => setPicked({ ...picked, [rowKey(r)]: e.target.checked })} /></td>
                 <td className="muted">{page * pageSize + i + 1}</td>
-                <td className="l player-cell"><span className="pc"><Headshot id={r.id} size={26} /><Link to={playerHref(role, r.id, r.season, split)}>{r.name}</Link></span></td>
+                <td className="l player-cell"><Link to={playerHref(role, r.id, r.season, split)}>{r.name}</Link></td>
                 {multi && <td>{r.season}</td>}<td className="l">{r.team}</td>
                 {cols.map((k) => {
                   const d = statDef(k, role); const v = r.splits[split]?.[k];
                   let style;
-                  if (pools && d.dir && typeof v === 'number') { const p = percentile(pools.get(k)?.get(r.season) || [], v, d.dir < 0); if (p != null) style = { background: `color-mix(in srgb, ${pctColor(p)} 38%, transparent)` }; }
+                  if (pools && d.dir && typeof v === 'number') { const p = percentile(pools.get(k)?.get(r.season) || [], v, d.dir < 0); if (p != null) style = shadeStyle(p); }
                   return <td key={k} className="mono" style={style}>{d.f(v)}{inline && split === 'all' && <SubSplits line={r.splits} k={k} d={d} main={v} role={role} />}</td>;
                 })}
               </tr>))}</tbody>

@@ -46,6 +46,8 @@ for (const y of seasons) {
     const f = path.join(root, y, `${role}.json`);
     if (!fs.existsSync(f)) continue;
     const players = JSON.parse(fs.readFileSync(f, 'utf8')).players;
+    // our own sc_X calculations only fill gaps: show them as X (same rule as src/lib/data.js collapseCalc)
+    for (const p of players) for (const sp of Object.values(p.splits)) for (const k of Object.keys(sp)) if (k.startsWith('sc_')) { if (sp[k.slice(3)] == null) sp[k.slice(3)] = sp[k]; delete sp[k]; }
     league[role][y] = leagueRef(players, role);
     for (const p of players) {
       const m = byRole[role];

@@ -3,9 +3,9 @@
 const L = (s) => s.split(/\s+/).filter(Boolean);
 
 const COMMON = {
-  battedBall: { label: 'Batted Ball', keys: L('GB/FB LD% GB% FB% IFFB% HR/FB IFH IFH% BUH BUH% Pull% Cent% Oppo% Soft% Med% Hard% GB%+ FB%+ LD%+ Pull%+ Cent%+ Oppo%+ Soft%+ Med%+ Hard%+ HRFB%+ Pull Cent Oppo Soft Med Hard GB FB LD IFFB') },
-  discipline: { label: 'Plate Discipline', keys: L('O-Swing% Z-Swing% Swing% O-Contact% Z-Contact% Contact% Zone% F-Strike% SwStr% CStr% C+SwStr% Pitches Balls Strikes'), match: /^sc[A-Z]+-(Contact|Swing|Zone)%$|^(pi|pfx)(Pace|Contact%|O-Swing%|O-Contact%|Z-Swing%|Z-Contact%|Zone%|Swing%)$/ },
-  statcast: { label: 'Statcast', keys: L('EV maxEV EV90 LA Barrel% Barrels HardHit% HardHit xAVG xSLG xwOBA xERA bipCount sc_PA sc_BBE sc_EV sc_maxEV sc_EV90 sc_LA sc_Barrel% sc_HardHit% sc_SweetSpot% sc_wOBA sc_xwOBA sc_K% sc_BB% sc_Whiff% sc_Swing% sc_Z-Swing% sc_O-Swing% sc_Z-Contact% sc_O-Contact% sc_GB% sc_LD% sc_FB% sc_PU%') },
+  battedBall: { label: 'Batted Ball', keys: L('GB/FB LD% GB% FB% PU% IFFB% HR/FB IFH IFH% BUH BUH% Pull% Cent% Oppo% Soft% Med% Hard% GB%+ FB%+ LD%+ Pull%+ Cent%+ Oppo%+ Soft%+ Med%+ Hard%+ HRFB%+ Pull Cent Oppo Soft Med Hard GB FB LD IFFB') },
+  discipline: { label: 'Plate Discipline', keys: L('O-Swing% Z-Swing% Swing% O-Contact% Z-Contact% Contact% Zone% F-Strike% SwStr% Whiff% CStr% C+SwStr% Pitches Balls Strikes'), match: /^(pi|pfx)(Pace|Contact%|O-Swing%|O-Contact%|Z-Swing%|Z-Contact%|Zone%|Swing%)$/ },
+  statcast: { label: 'Statcast', keys: L('EV maxEV EV90 LA Barrel% Barrels HardHit% HardHit SweetSpot% xAVG xSLG xwOBA xERA bipCount BBE') },
   batTracking: { label: 'Bat Tracking', keys: L('sv_SwingRV sv_HardSwing% sv_SqUpSwing% sv_BlastSwing% AvgBatSpeed FastSwing% SwingLength Swords SquaredUpContact% SquaredUpSwing% BlastContact% BlastSwing% AttackAngle AttackDirection IdealAttackAngle% Tilt DepthInBox DistanceOffPlate CompetitiveSwings') },
   pitchType: { label: 'Pitch Type', keys: L('FB% SL% CB% CH% CT% SF% KN% XX%'), match: /^(pi|pfx)[A-Z]{2,3}%$/ },
   velocity: { label: 'Velocity', keys: L('FBv SLv CBv CHv CTv SFv KNv'), match: /^(pi|pfx)v[A-Z]+$/ },
@@ -14,15 +14,15 @@ const COMMON = {
   plus: { label: '+ Stats', keys: [], match: /^[A-Za-z][A-Za-z0-9/%]*[+-]$/ },
   arsenal: { label: 'Pitch Arsenal (Savant)', keys: [], match: /^svA_/ },
   swingTake: { label: 'Swing / Take', keys: ['svST_RV', 'svST_Swing RV', 'svST_Take RV'], match: /^svST_/ },
-  bbProfile: { label: 'Batted Ball Profile', keys: L('sc_GB% sc_LD% sc_FB% sc_PU%'), match: /^svBB_/ },
-  expected: { label: 'Expected Stats', keys: L('AVG xAVG SLG xSLG wOBA xwOBA sc_wOBA sc_xwOBA ERA xERA') },
+  bbProfile: { label: 'Batted Ball Profile', keys: L('GB% LD% FB% PU%'), match: /^svBB_/ },
+  expected: { label: 'Expected Stats', keys: L('AVG xAVG SLG xSLG wOBA xwOBA ERA xERA') },
   winProb: { label: 'Win Probability', keys: L('WPA -WPA +WPA RE24 REW pLI phLI exLI gmLI inLI PH WPA/LI Clutch') },
 };
 
 export const SECTIONS = {
   bat: {
     playerValue: { label: 'Player value', keys: L('WAR RRAA RWAR RAR Batting BaseRunning Fielding Positional Offense Defense RRAA_Bat RRAA_BsR RRAA_Fld wRAA wRC wRC+ WPA RE24 Dollars'), editable: true },
-    realAbility: { label: 'Real ability', keys: L('xwOBA wwOBA wwRC+ xAVG xSLG EV EV90 maxEV Barrel% HardHit% LA K% BB% O-Swing% Z-Contact% SwStr% Contact% AvgBatSpeed SquaredUpContact% BlastContact% Spd sc_xwOBA sc_EV90 sc_Barrel%'), editable: true },
+    realAbility: { label: 'Real ability', keys: L('xwOBA wwOBA wwRC+ xAVG xSLG EV EV90 maxEV Barrel% HardHit% LA K% BB% O-Swing% Z-Contact% SwStr% Contact% AvgBatSpeed SquaredUpContact% BlastContact% Spd'), editable: true },
     standard: { label: 'Standard', keys: L('G AB PA H 1B 2B 3B HR R RBI BB IBB SO HBP SF SH GDP SB CS AVG') },
     advanced: { label: 'Advanced', keys: L('PA BB% K% BB/K AVG OBP SLG OPS ISO BABIP wRAA wRC wOBA wRC+ Spd AVG+ BB%+ K%+ OBP+ SLG+ ISO+ BABIP+') },
     statcast: COMMON.statcast, battedBall: COMMON.battedBall, discipline: COMMON.discipline, batTracking: COMMON.batTracking,
@@ -38,7 +38,7 @@ export const SECTIONS = {
   },
   pit: {
     playerValue: { label: 'Player value', keys: L('WAR RRAA RWAR RAR RA9-Wins BIP-Wins LOB-Wins RRAA_wRAA RRAA_Park WPA RE24 Dollars ERA- FIP-'), editable: true },
-    realAbility: { label: 'Real ability', keys: L('K-BB% K% BB% SwStr% CSW% C+SwStr% O-Swing% Zone% xFIP SIERA xERA sc_xwOBA RRAA_wOBA wwOBA wwRC+ GB% Barrel% HardHit% EV FBv sp_stuff sp_location sp_pitching pb_overall'), editable: true },
+    realAbility: { label: 'Real ability', keys: L('K-BB% K% BB% SwStr% CSW% C+SwStr% O-Swing% Zone% xFIP SIERA xERA xwOBA RRAA_wOBA wwOBA wwRC+ GB% Barrel% HardHit% EV FBv sp_stuff sp_location sp_pitching pb_overall'), editable: true },
     standard: { label: 'Standard', keys: L('W L ERA G GS CG ShO SV HLD BS IP TBF H R ER HR BB IBB HBP WP BK SO') },
     advanced: { label: 'Advanced', keys: L('K/9 BB/9 K/BB HR/9 K% BB% K-BB% AVG WHIP BABIP LOB% ERA- FIP- xFIP- ERA FIP E-F xFIP SIERA tERA xERA kwERA K/9+ BB/9+ K/BB+ H/9+ HR/9+ AVG+ WHIP+ BABIP+ LOB%+') },
     statcast: COMMON.statcast, battedBall: COMMON.battedBall, discipline: COMMON.discipline,

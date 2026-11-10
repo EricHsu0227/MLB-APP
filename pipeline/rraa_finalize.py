@@ -32,6 +32,7 @@ def main(root=OUT):
                 for sp in p["splits"].values():
                     for k in KEYS & sp.keys():
                         del sp[k]
+                    drop_calc_dupes(sp)
                 add = vals.get(p["id"])
                 if not add:
                     continue
@@ -41,6 +42,13 @@ def main(root=OUT):
             f.write_text(json.dumps(d, separators=(",", ":")))
             print(f"{season} {role}: RRAA for {hit} players")
         add_rwar(root / str(season), parts[season]["lgR_PA"])
+
+
+def drop_calc_dupes(split: dict) -> None:
+    """Remove our own sc_ calculation of a stat when FanGraphs/Savant already gives it (cleans files built before build.merge did this)."""
+    for k in [k for k in split if k.startswith("sc_")]:
+        if split.get(k[3:]) is not None:
+            del split[k]
 
 
 def _ip(v) -> float:

@@ -4,6 +4,7 @@ import { statDef, statKeys } from '../lib/catalog.js';
 import { DEFAULT_FAVS, MY_GROUPS, useFavs, useGroup } from '../lib/favs.js';
 import { sectionLabel } from '../lib/sections.js';
 import { StatPicker } from '../components/ui.jsx';
+import AppearanceSettings from '../components/Appearance.jsx';
 
 function ListEditor({ role, title, note, keys, value, onChange, reset, startOpen, bare }) {
   const [open, setOpen] = useState(!!startOpen);
@@ -59,18 +60,21 @@ export default function Settings({ index }) {
     <>
       <section className="panel">
         <h2 style={{ margin: 0 }}>Settings</h2>
-        <p className="muted" style={{ margin: '4px 0 0' }}>Pick the stats you care about most and the app leans toward them. My stats has a main list plus two groups, Player value and Real ability, which show up as their own selections on the leaderboard and player pages. The main list's stats are the default columns on the leaderboard, the stats on a player’s Overview and Compare, and they sort first in every stat table, with the sections that contain the most of them listed first.</p>
+        <p className="muted" style={{ margin: '4px 0 0' }}>My stats are the default columns on the leaderboard, a player’s Overview and Compare. Player value and Real ability are two more lists you can edit; they show up as their own tabs.</p>
       </section>
       <div className="grid" style={{ '--cols': 2 }}>
         <MyStats role="bat" season={season} />
         <MyStats role="pit" season={season} />
         <section className="panel card">
-          <h3>Display</h3>
-          <Toggle k="tools:splits" init label="L/R splits" hint="inline in tables" />
+          <h3>Appearance</h3>
+          <AppearanceSettings />
+        </section>
+        <section className="panel card">
+          <h3>Tables</h3>
+          <Toggle k="lb:shade" init label="Percentile shading" hint="leaderboard" />
+          <Toggle k="lb:lr" init={false} label="L/R splits under each number" hint="leaderboard" />
           <Toggle k="tools:heat" init label="Color coding" hint="player and compare tables" />
-          <Toggle k="tools:shade" init label="Percentile shading" hint="leaderboard" />
           <Toggle k="table:rev" init={false} label="Oldest season first" hint="player tables" />
-          <div className="muted small" style={{ marginTop: 8 }}>Theme, fonts and card style are under 🎨 Theme in the top bar.</div>
         </section>
         <section className="panel card">
           <h3>Reset</h3>
