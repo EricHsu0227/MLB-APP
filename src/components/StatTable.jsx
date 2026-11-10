@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { unCalc, usePref } from '../lib/data.js';
 import { SPLITS, splitLabel, statDef } from '../lib/catalog.js';
-import { SECTIONS, sectionKeys, sectionLabel } from '../lib/sections.js';
+import { PITCH_SECS, SECTIONS, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { favFirst } from '../lib/favs.js';
 import { pctFromRef, vsOwn } from '../lib/stats.js';
 import { tint } from '../lib/themes.js';
-import { Seg, StatPicker } from './ui.jsx';
+import { SectionTabs, Seg, StatPicker } from './ui.jsx';
 
 // Order of the selections in the picker. "custom" holds the person's own saved layouts.
 const ORDER = {
@@ -62,9 +62,9 @@ export default function StatTable({ role, file, seasons, season, split, keySet, 
 
   return (
     <section className="panel card stat-table">
-      <div className="selbar" role="tablist" aria-label="Stat selections">
-        {ids.map((s) => <button type="button" role="tab" key={s} aria-selected={active === s} className={active === s ? 'on' : ''} onClick={() => { setSel(s); setEdit(false); }}>{s === 'custom' ? 'Custom' : sectionLabel(role, s)}</button>)}
-      </div>
+      <SectionTabs value={active} onChange={(s) => { setSel(s); setEdit(false); }}
+        items={ids.filter((s) => !PITCH_SECS.includes(s)).map((s) => [s, s === 'custom' ? 'Custom' : sectionLabel(role, s)])}
+        more={ids.filter((s) => PITCH_SECS.includes(s)).map((s) => [s, sectionLabel(role, s)])} />
       {active === 'custom' && (
         <div className="row layouts">
           {layouts.map((l, i) => (naming === i

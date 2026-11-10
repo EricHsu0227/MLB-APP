@@ -131,3 +131,28 @@ export function SubSplits({ line, k, d, main, role }) {
   const cls = (v) => (typeof v !== 'number' || typeof main !== 'number' || !d.dir || v === main ? '' : (v - main) * d.dir > 0 ? ' good' : ' bad');
   return <div className="sub">{items.map(({ x, v }) => <span key={x} className={'s' + cls(v)} title={splitLabel(x, role)}>{x === 'vsL' ? 'L' : 'R'} {d.f(v)}</span>)}</div>;
 }
+
+/** Section switcher. Wide screens: a wrapping row of tabs, with `more` (pitch-level sections) in a dropdown.
+ *  Phones: one dropdown with everything, so nothing scrolls sideways or gets clipped. */
+export function SectionTabs({ items, more = [], value, onChange, moreLabel = 'Pitch data' }) {
+  const inMore = more.some(([id]) => id === value);
+  return (
+    <div className="sectabs">
+      <div className="sectabs-wide" role="tablist">
+        {items.map(([id, label]) => <button type="button" role="tab" aria-selected={value === id} key={id} className={value === id ? 'on' : ''} onClick={() => onChange(id)}>{label}</button>)}
+        {more.length > 0 && (
+          <select className={'sectabs-more' + (inMore ? ' on' : '')} value={inMore ? value : ''} onChange={(e) => e.target.value && onChange(e.target.value)} aria-label={moreLabel}>
+            <option value="">{moreLabel}</option>
+            {more.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>)}
+      </div>
+      <label className="sectabs-narrow">
+        <span className="muted small">Section</span>
+        <select value={value} onChange={(e) => onChange(e.target.value)}>
+          {items.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          {more.length > 0 && <optgroup label={moreLabel}>{more.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</optgroup>}
+        </select>
+      </label>
+    </div>
+  );
+}

@@ -98,3 +98,5 @@ function sectionKeysOf(sec, have) {
   if (sec.match) for (const k of [...have].sort()) if (sec.match.test(k) && !out.includes(k)) out.push(k);
   return out;
 }
+/** Sections with one column per pitch type: kept out of the main tab row. */
+export const PITCH_SECS = ['pitchType', 'velocity', 'pitchValues', 'movement', 'arsenal', 'swingTake'];

@@ -46,13 +46,21 @@ input[type=checkbox] { accent-color:var(--accent) }
 .lb-filters { display:flex; flex-direction:column; gap:8px; align-items:flex-start } .lb-filters .chips { margin-top:0; align-items:center } .stat-filters { display:flex; flex-direction:column; gap:6px; border-top:1px solid var(--line); padding-top:8px }
 
 /* tabs: underlined text, like FanGraphs/Savant */
-.tabs { display:flex; gap:0; overflow-x:auto; border-bottom:1px solid var(--line); margin:0 0 10px; scrollbar-width:thin }
+.tabs { display:flex; gap:0; overflow-x:auto; overflow-y:hidden; border-bottom:1px solid var(--line); margin:0 0 10px; scrollbar-width:none; -webkit-overflow-scrolling:touch } .tabs::-webkit-scrollbar { display:none }
 .tabs button { border:0; border-bottom:3px solid transparent; background:none; color:var(--muted); padding:8px 12px 7px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; margin-bottom:-1px }
 .tabs button:hover { color:var(--fg) } .tabs button.on { color:var(--fg); border-bottom-color:var(--accent) }
 .tabs.main button { font-size:1.02em; padding:9px 14px 8px } .tabs.secs button { font-size:.88em; padding:6px 10px 5px }
 .selbar { display:flex; gap:0; overflow-x:auto; border-bottom:1px solid var(--line); margin-bottom:8px; scrollbar-width:thin }
 .selbar button { border:0; border-bottom:2px solid transparent; background:none; color:var(--muted); padding:6px 10px 5px; cursor:pointer; font:inherit; font-size:.88em; font-weight:600; white-space:nowrap; margin-bottom:-1px }
 .selbar button:hover { color:var(--fg) } .selbar button.on { color:var(--fg); border-bottom-color:var(--accent) }
+
+/* section switcher: wrapping tabs on wide screens, one dropdown on phones */
+.sectabs { margin:0 0 10px }
+.sectabs-wide { display:flex; flex-wrap:wrap; align-items:center; gap:2px 0; border-bottom:1px solid var(--line) }
+.sectabs-wide button { border:0; border-bottom:2px solid transparent; background:none; color:var(--muted); padding:6px 10px 5px; cursor:pointer; font:inherit; font-size:.88em; font-weight:600; white-space:nowrap; margin-bottom:-1px }
+.sectabs-wide button:hover { color:var(--fg) } .sectabs-wide button.on { color:var(--fg); border-bottom-color:var(--accent) }
+.sectabs-more { margin-left:6px; font-size:.86em; padding:3px 6px; color:var(--muted) } .sectabs-more.on { color:var(--fg); border-color:var(--accent) }
+.sectabs-narrow { display:none; align-items:center; gap:8px } .sectabs-narrow select { flex:1; height:36px; padding:4px 8px; font-weight:600 }
 
 /* chips (stat pickers, position filters) */
 .chips { display:flex; flex-wrap:wrap; gap:4px; max-height:210px; overflow:auto; margin-top:8px }
@@ -62,7 +70,7 @@ input[type=checkbox] { accent-color:var(--accent) }
 .pick-group { border-top:1px solid var(--line); padding:4px 0 6px } .pick-group .chips { max-height:none; margin-top:4px }
 .pick-head { display:flex; align-items:baseline; gap:10px } .pick-head .link-btn { padding:4px 0 } .pick-head > .link-btn:first-child { color:var(--fg); font-size:.9em }
 .pick-sel { margin-top:8px } .pick-sel .chips { margin-top:4px; max-height:96px }
-.layouts { margin-bottom:6px } .layouts .chip { font-size:.88em; padding:3px 10px } .ctrls { margin-bottom:6px }
+.ctrls .seg button { font-size:12.5px } .layouts { margin-bottom:6px } .layouts .chip { font-size:.88em; padding:3px 10px } .ctrls { margin-bottom:6px }
 
 /* search */
 .search { position:relative } .search input { width:100% }
@@ -158,6 +166,14 @@ input[type=color] { width:38px; height:26px; padding:0 2px; border:1px solid var
   .pct-grid { grid-template-columns:1fr } .pct { grid-template-columns:96px 1fr 50px; gap:6px }
   .tabs button, .tabs.main button { padding:7px 10px 6px }
   .ptabs { position:sticky; top:0; z-index:15; background:var(--bg) }
+  .sectabs-wide { display:none } .sectabs-narrow { display:flex }
+  /* 16px text in fields stops iPhone Safari from zooming the page when one is tapped */
+  select, input[type=text], input[type=number], input[type=search], input:not([type]) { font-size:16px; height:34px }
+  .btn { height:32px } .btn.sm { height:30px }
+  .seg button, .seg.small button { padding:6px 10px; font-size:.86em }
+  /* tab rows that scroll sideways fade at the right edge, so it is clear there is more */
+  .tabs.main { -webkit-mask-image:linear-gradient(90deg,#000 85%,transparent); mask-image:linear-gradient(90deg,#000 85%,transparent); padding-right:24px }
+  .ctrls { gap:6px 10px }
   .search-pop { min-width:0 }
   .bbrow { grid-template-columns:92px 1fr } .chart.sq { max-width:100% }
   .player-cell { min-width:0; max-width:42vw } .player-cell a { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
