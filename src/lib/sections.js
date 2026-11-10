@@ -100,3 +100,6 @@ function sectionKeysOf(sec, have) {
 }
 /** Sections with one column per pitch type: kept out of the main tab row. */
 export const PITCH_SECS = ['pitchType', 'velocity', 'pitchValues', 'movement', 'arsenal', 'swingTake'];
+/** Stats that have no meaningful vs-LHP / vs-RHP split (fielding, base running, speed). */
+const NO_SPLIT = new Set([...SECTIONS.bat.fielding.keys, ...SECTIONS.bat.running.keys, 'CFraming', 'RRAA_Fld', 'RRAA_FRV', 'RRAA_BsR', 'Positional', 'Defense']);
+export const noSplit = (k) => NO_SPLIT.has(k) || /^sv_(OAA|FRP|FRV|Arm|Throws|Framing|Sprint|HPto1B|Bolts|CompRuns)/.test(k);
