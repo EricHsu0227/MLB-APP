@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { unCalc, useRows, usePref } from '../lib/data.js';
 import { statDef, statKeys } from '../lib/catalog.js';
-import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
+import { sectionIds, sectionKeys, sectionLabel, PITCH_SECS } from '../lib/sections.js';
 import { percentile, peerPool, sortRows, toCSV } from '../lib/stats.js';
-import { SplitSelect, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
+import { SectionTabs, SplitSelect, StatPicker, SubSplits, playerHref } from '../components/ui.jsx';
 import RraaBoard from '../components/RraaBoard.jsx';
 import LbFilters, { EMPTY, activeCount, makeFilter, teamGames, useLbFilters } from '../components/LbFilters.jsx';
 import { MyStatsEditor } from './Settings.jsx';
@@ -120,12 +120,9 @@ export default function Leaderboard({ index }) {
         </div>)}
       {roleSel === 'rraa' ? <RraaBoard seasons={seasons} lo={lo} hi={hi} split={split} team={team} q={q} xf={xf} /> : <>
 
-      <div className="tabs secs">
-        <button type="button" className={sec === 'favs' ? 'on' : ''} onClick={() => { setSec('favs'); setSort({ key: null, dir: -1 }); }}>My stats</button>
-        {MY_GROUPS.map((g) => <button type="button" key={g} className={sec === g ? 'on' : ''} onClick={() => { setSec(g); setSort({ key: null, dir: -1 }); }}>{sectionLabel(role, g)}</button>)}
-        {secOrder.map((s) => <button type="button" key={s} className={sec === s ? 'on' : ''} onClick={() => { setSec(s); setSort({ key: null, dir: -1 }); }}>{sectionLabel(role, s)}</button>)}
-        <button type="button" className={sec === 'custom' ? 'on' : ''} onClick={() => { if (!custom) setCustom(cols.length ? cols : ['WAR']); setSec('custom'); setEdit(true); }}>Custom</button>
-      </div>
+      <SectionTabs value={sec} onChange={(s) => { if (s === 'custom' && !custom) setCustom(cols.length ? cols : ['WAR']); setSec(s); setSort({ key: null, dir: -1 }); if (s === 'custom') setEdit(true); }}
+        items={[['favs', 'My stats'], ...MY_GROUPS.map((g) => [g, sectionLabel(role, g)]), ...secOrder.filter((s) => !PITCH_SECS.includes(s)).map((s) => [s, sectionLabel(role, s)]), ['custom', 'Custom']]}
+        more={secOrder.filter((s) => PITCH_SECS.includes(s)).map((s) => [s, sectionLabel(role, s)])} />
       {mine && edit && <section className="panel"><MyStatsEditor role={role} season={hi} group={sec} bare /></section>}
       {(sec === 'custom' || edit) && sec === 'custom' && <section className="panel"><StatPicker keys={allKeys} role={role} value={custom || []} onChange={setCustom} /></section>}
 
