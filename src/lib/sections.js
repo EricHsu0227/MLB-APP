@@ -66,3 +66,35 @@ export function sectionKeys(role, id, available) {
   if (sec.match) for (const k of [...have].sort()) if (sec.match.test(k) && !out.includes(k) && k !== '-WPA' && k !== '+WPA') out.push(k);
   return out;
 }
+
+// Groups for the stat picker. Every key goes in the first group that claims it, so the picker shows each stat once.
+// Pitch-level groups (one stat per pitch type) start folded, because they are long and rarely wanted.
+const PICK_ORDER = ['standard', 'advanced', 'expected', 'statcast', 'battedBall', 'discipline', 'batTracking', 'stuff', 'value', 'rraa', 'fielding', 'running', 'winProb', 'plus', 'bbProfile'];
+const PICK_FOLDED = ['pitchType', 'velocity', 'pitchValues', 'movement', 'arsenal', 'swingTake', 'zones'];
+const ZONES = { label: 'Zone Swing / Contact', keys: [], match: /^sc[A-Z]{1,2}-(Swing|Contact|Zone)%$/ };
+const HIDDEN = new Set(L('Season SeasonMin SeasonMax wLeague FB%1 Q TG TPA TIP teamid playerTeamId Pos Events'));
+/** [{ id, label, keys, folded }] covering every key in `keys`; leftovers go in "Other". */
+export function pickerGroups(role, keys) {
+  const have = new Set(keys.filter((k) => !HIDDEN.has(k)));
+  const used = new Set();
+  const out = [];
+  const take = (id, sec, folded) => {
+    if (!sec) return;
+    const ks = (SECTIONS[role][id] ? sectionKeys(role, id, have) : sectionKeysOf(sec, have)).filter((k) => !used.has(k));
+    ks.forEach((k) => used.add(k));
+    if (ks.length) out.push({ id, label: sec.label, keys: ks, folded });
+  };
+  // claim pitch-level keys first so a broad regex (like "+ Stats") never pulls them into an open group
+  const folded = PICK_FOLDED.map((id) => [id, id === 'zones' ? ZONES : SECTIONS[role][id]]);
+  for (const [id, sec] of folded) take(id, sec, true);
+  const pitchGroups = out.splice(0);
+  for (const id of PICK_ORDER) take(id, SECTIONS[role][id] || COMMON[id], false);
+  const rest = [...have].filter((k) => !used.has(k)).sort((a, b) => a.localeCompare(b));
+  if (rest.length) out.push({ id: 'other', label: 'Other', keys: rest, folded: false });
+  return [...out, ...pitchGroups];
+}
+function sectionKeysOf(sec, have) {
+  const out = sec.keys.filter((k) => have.has(k));
+  if (sec.match) for (const k of [...have].sort()) if (sec.match.test(k) && !out.includes(k)) out.push(k);
+  return out;
+}

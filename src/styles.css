@@ -58,6 +58,10 @@ input[type=checkbox] { accent-color:var(--accent) }
 .chips { display:flex; flex-wrap:wrap; gap:4px; max-height:210px; overflow:auto; margin-top:8px }
 .chip { font-size:.82em; padding:2px 8px; border:1px solid var(--line); border-radius:var(--radius); cursor:pointer; background:var(--panel); color:var(--fg); font-family:inherit } .chip:hover { border-color:var(--muted) } .chip.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent) } .chip input { display:none }
 .picker { margin:8px 0; padding:10px; background:var(--panel2); border-radius:var(--radius) }
+.pick-groups { max-height:420px; overflow:auto; margin-top:6px }
+.pick-group { border-top:1px solid var(--line); padding:4px 0 6px } .pick-group .chips { max-height:none; margin-top:4px }
+.pick-head { display:flex; align-items:baseline; gap:10px } .pick-head .link-btn { padding:4px 0 } .pick-head > .link-btn:first-child { color:var(--fg); font-size:.9em }
+.pick-sel { margin-top:8px } .pick-sel .chips { margin-top:4px; max-height:96px }
 .layouts { margin-bottom:6px } .layouts .chip { font-size:.88em; padding:3px 10px } .ctrls { margin-bottom:6px }
 
 /* search */
