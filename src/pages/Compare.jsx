@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { load, usePref } from '../lib/data.js';
+import { load, unCalc, usePref } from '../lib/data.js';
 import { statDef, splitLabel, keysOfSeasons } from '../lib/catalog.js';
 import { sectionIds, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { heat, peerPool, percentile } from '../lib/stats.js';
@@ -54,7 +54,7 @@ export default function Compare({ index }) {
   const [statsBat, setStatsBat] = usePref('cmp:stats2:bat', null);
   const [statsPit, setStatsPit] = usePref('cmp:stats2:pit', null);
   const [favBat] = useFavs('bat'); const [favPit] = useFavs('pit');
-  const stats = (role === 'bat' ? statsBat || favBat : statsPit || favPit), setStats = role === 'bat' ? setStatsBat : setStatsPit;
+  const stats = unCalc(role === 'bat' ? statsBat || favBat : statsPit || favPit), setStats = role === 'bat' ? setStatsBat : setStatsPit;
   const setEntries = (es) => setQs((q) => { const n = new URLSearchParams(q); if (es.length) n.set('p', enc(es)); else n.delete('p'); return n; }, { replace: true });
   const fileOf = (e) => files[`${e.role}/${e.id}`];
   const lineOf = (e) => fileOf(e)?.seasons?.[e.season]?.splits?.[split];

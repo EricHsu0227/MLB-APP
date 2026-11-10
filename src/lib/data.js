@@ -1,8 +1,30 @@
 import { useEffect, useState } from 'react';
 const cache = new Map();
+
+/** Our own Statcast calculations are stored as sc_X and only exist where FanGraphs/Savant has no X.
+ *  Show them as plain X, and drop any leftover copy where the source value is there. */
+export function collapseCalc(s) {
+  if (!s || typeof s !== 'object') return s;
+  for (const k of Object.keys(s)) {
+    if (!k.startsWith('sc_')) continue;
+    const b = k.slice(3);
+    if (s[b] == null) s[b] = s[k];
+    delete s[k];
+  }
+  return s;
+}
+function normalize(path, d) {
+  if (d?.players) for (const p of d.players) for (const sp of Object.values(p.splits || {})) collapseCalc(sp);
+  if (d?.seasons && !Array.isArray(d.seasons)) for (const y of Object.values(d.seasons)) for (const sp of Object.values(y?.splits || {})) collapseCalc(sp);
+  if (/^league-/.test(path)) for (const y of Object.values(d || {})) for (const sp of Object.values(y || {})) collapseCalc(sp);
+  return d;
+}
+/** Saved stat lists from before the merge may still name sc_X. */
+export const unCalc = (keys) => (Array.isArray(keys) ? [...new Set(keys.map((k) => (typeof k === 'string' && k.startsWith('sc_') ? k.slice(3) : k)))] : keys);
+
 export function load(path) {
   if (!cache.has(path)) {
-    const p = fetch(`./data/${path}`).then((r) => { if (!r.ok) throw new Error(`${path}: ${r.status}`); return r.json(); });
+    const p = fetch(`./data/${path}`).then((r) => { if (!r.ok) throw new Error(`${path}: ${r.status}`); return r.json(); }).then((d) => normalize(path, d));
     p.catch(() => cache.delete(path));
     cache.set(path, p);
   }
@@ -21,8 +43,13 @@ export const usePlayerFile = (role, id) => useData(role && id ? `players/${role}
 export const useSeason = (season, role) => useData(season && role ? `${season}/${role}.json` : null);
 
 /** Per-viewer UI preference (localStorage may be unavailable). */
+const readPref = (key, init) => { try { const s = localStorage.getItem('mlb:' + key); return s ? JSON.parse(s) : init; } catch { return init; } };
 export function usePref(key, init) {
-  const [v, setV] = useState(() => { try { const s = localStorage.getItem('mlb:' + key); return s ? JSON.parse(s) : init; } catch { return init; } });
+  const [st, setSt] = useState(() => ({ key, v: readPref(key, init) }));
+  // the same component can switch keys (e.g. hitter page -> pitcher page): re-read when it does
+  const v = st.key === key ? st.v : readPref(key, init);
+  const setV = (val) => setSt({ key, v: val });
+  useEffect(() => { if (st.key !== key) setSt({ key, v }); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { // keep every component using the same key in step
     const on = (e) => { if (e.detail.key === key) setV(e.detail.val); };
     window.addEventListener('mlb-pref', on);

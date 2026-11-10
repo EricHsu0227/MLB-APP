@@ -13,6 +13,9 @@ export function Seg({ value, onChange, options, small }) {
   );
 }
 export const SplitSeg = ({ role = 'bat', ...p }) => <Seg {...p} options={SPLITS.map(([id]) => [id, splitLabel(id, role)])} />;
+export const SplitSelect = ({ role = 'bat', value, onChange }) => (
+  <select value={value} onChange={(e) => onChange(e.target.value)}>{SPLITS.map(([id]) => <option key={id} value={id}>{splitLabel(id, role)}</option>)}</select>
+);
 export const RoleSeg = (p) => <Seg {...p} options={[['bat', 'Hitters'], ['pit', 'Pitchers']]} />;
 export const SeasonSelect = ({ seasons, value, onChange, all }) => (
   <select value={value} onChange={(e) => onChange(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
@@ -23,7 +26,7 @@ export const SeasonSelect = ({ seasons, value, onChange, all }) => (
 export function Headshot({ id, size = 64, className = '' }) {
   const [bad, setBad] = useState(false);
   return bad
-    ? <div className={'avatar ' + className} style={{ width: size, height: size }}>⚾</div>
+    ? <div className={'avatar ' + className} style={{ width: size, height: size }} />
     : <img className={'avatar ' + className} width={size} height={size} src={headshot(id, size * 2)} alt="" loading="lazy" onError={() => setBad(true)} />;
 }
 

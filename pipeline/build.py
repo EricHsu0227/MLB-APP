@@ -16,7 +16,10 @@ def merge(fg: dict, sc: dict) -> list[dict]:
         f, s = fg.get(pid, {}), sc.get(pid, {})
         splits = {}
         for sp in ("all", "vsL", "vsR"):
-            m = {**f.get(sp, {}), **{(k[6:] if k.startswith("__sv__") else f"sc_{k}"): v for k, v in s.get(sp, {}).items()}}  # self-calculated keys prefixed
+            fs = f.get(sp, {})
+            # self-calculated keys are prefixed sc_, and only kept when FanGraphs/Savant has no value for that stat
+            m = {**fs, **{(k[6:] if k.startswith("__sv__") else f"sc_{k}"): v for k, v in s.get(sp, {}).items()
+                          if k.startswith("__sv__") or fs.get(k) is None}}
             if m:
                 splits[sp] = clean(m)
         rows.append({"id": pid, "name": f.get("name"), "team": f.get("team"), "splits": splits})

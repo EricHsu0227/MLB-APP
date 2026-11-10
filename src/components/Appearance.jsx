@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { DEFAULT_UI, FONTS, THEMES, applyUI, resolveTheme } from '../lib/themes.js';
+import { useEffect } from 'react';
+import { DEFAULT_UI, THEMES, applyUI, resolveTheme } from '../lib/themes.js';
+import { usePref } from '../lib/data.js';
+import { Seg } from './ui.jsx';
 
 const themeVar = (ui, k) => resolveTheme(ui.theme || DEFAULT_UI.theme).v[k] || '#888888';
-import { usePref } from '../lib/data.js';
 
 export function useAppearance() {
   const [ui, setUi] = usePref('ui3', DEFAULT_UI);
@@ -14,34 +15,18 @@ export function useAppearance() {
   return [{ ...DEFAULT_UI, ...ui }, setUi];
 }
 
-export default function Appearance({ ui, setUi }) {
-  const [open, setOpen] = useState(false);
+/** Appearance settings, shown on the Settings page. */
+export default function AppearanceSettings() {
+  const [ui, setUi] = useAppearance();
   const set = (patch) => setUi({ ...ui, ...patch });
+  const theme = resolveTheme(ui.theme).id;
   return (
-    <div className="appearance">
-      <button type="button" className="btn" onClick={() => setOpen(!open)} aria-expanded={open}>🎨 Theme</button>
-      {open && (
-        <div className="pop panel" role="dialog" aria-label="Appearance">
-          <div className="pop-h"><b>Appearance</b><button type="button" className="btn sm" onClick={() => setOpen(false)}>✕</button></div>
-          <div className="themes">
-            <button type="button" className={'theme-card' + (ui.theme === 'auto' ? ' on' : '')} onClick={() => set({ theme: 'auto' })}><span className="sw auto" />Auto</button>
-            {THEMES.map((t) => (
-              <button type="button" key={t.id} className={'theme-card' + (ui.theme === t.id ? ' on' : '')} onClick={() => set({ theme: t.id })}>
-                <span className="sw" style={{ background: `linear-gradient(135deg, ${t.swatch[0]} 50%, ${t.swatch[1]} 50%)`, boxShadow: `inset 0 0 0 3px ${t.swatch[2]}33` }} />{t.label}
-              </button>))}
-          </div>
-          <div className="form">
-            <label>First color <span className="row"><input type="color" value={ui.accent || themeVar(ui, '--accent')} onChange={(e) => set({ accent: e.target.value })} /><button type="button" className="btn sm" onClick={() => set({ accent: '' })}>Theme</button></span></label>
-            <label>Second color <span className="row"><input type="color" value={ui.accent2 || themeVar(ui, '--c2')} onChange={(e) => set({ accent2: e.target.value })} /><button type="button" className="btn sm" onClick={() => set({ accent2: '' })}>Theme</button></span></label>
-            <label>Corners <input type="range" min="-1" max="22" value={ui.radius} onChange={(e) => set({ radius: +e.target.value })} /></label>
-            <label>Text size <input type="range" min="12" max="18" value={ui.fontSize} onChange={(e) => set({ fontSize: +e.target.value })} /></label>
-            <label>Font <select value={ui.font} onChange={(e) => set({ font: e.target.value })}>{FONTS.map(([n, v]) => <option key={n} value={v}>{n}</option>)}</select></label>
-            <label>Density <select value={ui.density} onChange={(e) => set({ density: e.target.value })}><option value="compact">Compact</option><option value="cozy">Cozy</option><option value="roomy">Roomy</option></select></label>
-            <label>Cards <select value={ui.cards} onChange={(e) => set({ cards: e.target.value })}><option value="default">Default</option><option value="flat">Flat</option><option value="outline">Outlined</option><option value="raised">Raised</option></select></label>
-          </div>
-          <label className="tool-row"><span><b>Team colors on player pages</b></span><input type="checkbox" role="switch" checked={ui.teamColors !== false} onChange={(e) => set({ teamColors: e.target.checked })} /></label>
-          <button type="button" className="btn sm" onClick={() => setUi(DEFAULT_UI)}>Reset appearance</button>
-        </div>)}
+    <div className="form">
+      <label>Theme <Seg small value={ui.theme === 'auto' ? 'auto' : theme} onChange={(v) => set({ theme: v })} options={[...THEMES.map((t) => [t.id, t.label]), ['auto', 'Match device']]} /></label>
+      <label>Main color <span className="row"><input type="color" value={ui.accent || themeVar(ui, '--accent')} onChange={(e) => set({ accent: e.target.value })} /><button type="button" className="btn sm" onClick={() => set({ accent: '' })}>Default</button></span></label>
+      <label>Second color <span className="row"><input type="color" value={ui.accent2 || themeVar(ui, '--c2')} onChange={(e) => set({ accent2: e.target.value })} /><button type="button" className="btn sm" onClick={() => set({ accent2: '' })}>Default</button></span></label>
+      <label>Text size <Seg small value={ui.fontSize || 14} onChange={(v) => set({ fontSize: v })} options={[[13, 'Small'], [14, 'Normal'], [16, 'Large']]} /></label>
+      <label>Team color on player pages <input type="checkbox" role="switch" checked={ui.teamColors !== false} onChange={(e) => set({ teamColors: e.target.checked })} /></label>
     </div>
   );
 }

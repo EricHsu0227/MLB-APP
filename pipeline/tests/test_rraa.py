@@ -189,5 +189,17 @@ def test_rwar():
         assert b[0]["RWAR"] > b[1]["RWAR"] and q[0]["RWAR"] > q[1]["RWAR"]
 
 
+def test_only_calculate_missing():
+    import build
+    rows = build.merge({1: {"name": "A", "team": "NYY", "all": {"wOBA": 0.35, "EV": None}}},
+                       {1: {"all": {"wOBA": 0.34, "EV": 91.0, "Whiff%": 0.2, "__sv__sv_OAA": 3}}})
+    s = rows[0]["splits"]["all"]
+    assert s["wOBA"] == 0.35 and "sc_wOBA" not in s  # FanGraphs has it: no copy of ours
+    assert s["sc_EV"] == 91.0 and s["sc_Whiff%"] == 0.2 and s["sv_OAA"] == 3  # missing upstream: ours fills in
+    sp = {"wOBA": 0.35, "sc_wOBA": 0.34, "sc_Whiff%": 0.2, "EV": None, "sc_EV": 90.0}
+    rraa_finalize.drop_calc_dupes(sp)
+    assert sp == {"wOBA": 0.35, "sc_Whiff%": 0.2, "EV": None, "sc_EV": 90.0}
+
+
 if __name__ == "__main__":
-    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); test_refresh_and_new_keys(); test_player_meta(); test_rwar(); print("ok")
+    test_rraa(); test_scale_and_upgrade(); test_fld_team_adjust(); test_refresh_and_new_keys(); test_player_meta(); test_rwar(); test_only_calculate_missing(); print("ok")

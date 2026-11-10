@@ -1,7 +1,7 @@
 import { NavLink, Route, Routes, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useData } from './lib/data.js';
 import { PlayerSearch } from './components/ui.jsx';
-import Appearance, { useAppearance } from './components/Appearance.jsx';
+import { useAppearance } from './components/Appearance.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import Player from './pages/Player.jsx';
 import Compare from './pages/Compare.jsx';
@@ -11,20 +11,21 @@ const OldPlayer = () => { const { season, role, id } = useParams(); return <Navi
 
 export default function App() {
   const { data: index, error } = useData('index.json');
-  const [ui, setUi] = useAppearance();
+  useAppearance();
   const nav = useNavigate();
   return (
     <>
       {index?.synthetic && <div className="banner">Showing synthetic sample data (not real players). Run the data pipeline to load real stats.</div>}
       <header className="nav">
-        <NavLink to="/" className="brand"><span className="logo">⚾</span> MLB Stats</NavLink>
-        <nav>
-          <NavLink to="/leaderboard">Leaderboard</NavLink>
-          <NavLink to="/compare">Compare</NavLink>
-          <NavLink to="/settings">Settings</NavLink>
-        </nav>
-        <PlayerSearch className="nav-search" placeholder="Search any player…" onPick={(p) => nav(`/player/${p.roles[0]}/${p.id}`)} />
-        <Appearance ui={ui} setUi={setUi} />
+        <div className="nav-in">
+          <NavLink to="/" className="brand">MLB Stats</NavLink>
+          <nav>
+            <NavLink to="/leaderboard">Leaderboards</NavLink>
+            <NavLink to="/compare">Compare</NavLink>
+            <NavLink to="/settings">Settings</NavLink>
+          </nav>
+          <PlayerSearch className="nav-search" placeholder="Search players" onPick={(p) => nav(`/player/${p.roles[0]}/${p.id}`)} />
+        </div>
       </header>
       <main>
         {error && <div className="panel">Couldn’t load data/index.json. Run <code>npm run sample</code> or the pipeline.</div>}
@@ -39,7 +40,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>)}
       </main>
-      <footer className="foot muted small">Data: FanGraphs and Baseball Savant, plus Statcast stats calculated from pitch-level data. For personal use.</footer>
+      <footer className="foot muted small">Data from FanGraphs, Baseball Savant and MLB. Stats they don’t publish (such as RRAA and L/R Statcast splits) are calculated from pitch-level data.</footer>
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePref } from '../lib/data.js';
+import { unCalc, usePref } from '../lib/data.js';
 import { SPLITS, splitLabel, statDef } from '../lib/catalog.js';
 import { SECTIONS, sectionKeys, sectionLabel } from '../lib/sections.js';
 import { favFirst } from '../lib/favs.js';
@@ -40,8 +40,8 @@ export default function StatTable({ role, file, seasons, season, split, keySet, 
   const active = ids.includes(sel) ? sel : 'playerValue';
   const lay = layouts[Math.min(li, layouts.length - 1)] || layouts[0];
   const keys = useMemo(() => {
-    if (active === 'custom') return (lay?.keys || favs).filter((k) => keySet.has(k));
-    if (edits[active]) return edits[active].filter((k) => keySet.has(k));
+    if (active === 'custom') return (unCalc(lay?.keys) || favs).filter((k) => keySet.has(k));
+    if (edits[active]) return unCalc(edits[active]).filter((k) => keySet.has(k));
     const base = sectionKeys(role, active, keySet);
     return SECTIONS[role][active]?.editable ? base : favFirst(base, favs);
   }, [active, lay, favs, keySet, edits, role]);
@@ -63,7 +63,7 @@ export default function StatTable({ role, file, seasons, season, split, keySet, 
   return (
     <section className="panel card stat-table">
       <div className="selbar" role="tablist" aria-label="Stat selections">
-        {ids.map((s) => <button type="button" role="tab" key={s} aria-selected={active === s} className={active === s ? 'on' : ''} onClick={() => { setSel(s); setEdit(false); }}>{s === 'custom' ? '★ Custom' : sectionLabel(role, s)}</button>)}
+        {ids.map((s) => <button type="button" role="tab" key={s} aria-selected={active === s} className={active === s ? 'on' : ''} onClick={() => { setSel(s); setEdit(false); }}>{s === 'custom' ? 'Custom' : sectionLabel(role, s)}</button>)}
       </div>
       {active === 'custom' && (
         <div className="row layouts">
@@ -75,7 +75,7 @@ export default function StatTable({ role, file, seasons, season, split, keySet, 
           {layouts.length > 1 && <button type="button" className="btn sm" onClick={delLayout}>Delete</button>}
         </div>)}
       <div className="row ctrls">
-        <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : `✎ Choose stats (${keys.length})`}</button>
+        <button type="button" className="btn sm" onClick={() => setEdit(!edit)}>{edit ? 'Done' : `Choose stats (${keys.length})`}</button>
         {active !== 'custom' && edits[active] && <button type="button" className="btn sm" onClick={resetKeys}>Default stats</button>}
         <label className="small row">Color <Seg small value={mode} onChange={setMode} options={COLOR_MODES} /></label>
         <label className="small row"><input type="checkbox" checked={!!withSplits} onChange={(e) => setWithSplits(e.target.checked)} /> L/R rows</label>

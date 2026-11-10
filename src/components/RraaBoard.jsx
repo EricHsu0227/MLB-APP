@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePref, useRows } from '../lib/data.js';
 import { percentile, toCSV } from '../lib/stats.js';
-import { pctColor } from '../lib/themes.js';
-import { Headshot, Seg, playerHref } from './ui.jsx';
+import { shadeStyle } from '../lib/themes.js';
+import { Seg, playerHref } from './ui.jsx';
 import { activeCount, makeFilter } from './LbFilters.jsx';
 
 // One RRAA board for hitters and pitchers together. Two-way players get one row with both parts added up.
@@ -56,7 +56,7 @@ export default function RraaBoard({ seasons, lo, hi, split, team, q, xf }) {
   const pit = useRows('pit', lo, hi, seasons);
   const [who, setWho] = usePref('lb:rraa:who', 'all');
   const [min, setMin] = usePref('lb:rraa:min', 150);
-  const [shade] = usePref('tools:shade', true);
+  const [shade] = usePref('lb:shade', true);
   const [pageSize, setPageSize] = usePref('lb:ps', 50);
   const [sort, setSort] = useState({ key: 'RRAA', dir: -1 });
   const [page, setPage] = useState(0);
@@ -86,13 +86,11 @@ export default function RraaBoard({ seasons, lo, hi, split, team, q, xf }) {
 
   return (
     <>
-      <section className="panel toolbar">
-        <div className="row">
-          <Seg small value={who} onChange={setWho} options={[['all', 'Everyone'], ['H', 'Hitters'], ['P', 'Pitchers']]} />
-          <label className="small">Min PA + TBF <input type="number" style={{ width: 70 }} value={min} onChange={(e) => setMin(+e.target.value)} /></label>
-        </div>
-        <div className="muted small">RRAA is runs above average. Hitters get batting, baserunning and fielding runs, and pitchers get runs prevented. Two-way players show both added together.{split !== 'all' && ' In L/R splits, a hitter’s baserunning and fielding runs are shared out by PA.'}</div>
-      </section>
+      <div className="toolbar">
+        <Seg small value={who} onChange={setWho} options={[['all', 'Everyone'], ['H', 'Hitters'], ['P', 'Pitchers']]} />
+        <label>Min PA + TBF <input type="number" style={{ width: 64 }} value={min} onChange={(e) => setMin(+e.target.value)} /></label>
+      </div>
+      <p className="note">RRAA is runs above average: batting, baserunning and fielding for hitters, runs prevented for pitchers. Two-way players show both added together.{split !== 'all' && ' In L/R splits, a hitter’s baserunning and fielding runs are shared out by PA.'}</p>
       <section className="panel nopad">
         <div className="row between pad">
           <span className="muted small">{loading ? 'Loading…' : `${rows.length.toLocaleString()} ${multi ? 'player-seasons' : 'players'}`}</span>
@@ -106,12 +104,12 @@ export default function RraaBoard({ seasons, lo, hi, split, team, q, xf }) {
               <tr key={`${r.id}:${r.season}`}>
                 <td className="muted">{page * pageSize + i + 1}</td>
                 <td><span className={`rraa-type ${r.type}`} title={{ H: 'Hitter', P: 'Pitcher', TW: 'Two-way' }[r.type]}>{r.type}</span></td>
-                <td className="l player-cell"><span className="pc"><Headshot id={r.id} size={26} /><Link to={playerHref(ROLE_OF[r.type], r.id, r.season, split)}>{r.name}</Link></span></td>
+                <td className="l player-cell"><Link to={playerHref(ROLE_OF[r.type], r.id, r.season, split)}>{r.name}</Link></td>
                 {multi && <td>{r.season}</td>}<td className="l">{r.team}</td>
                 {cols.map(([k, , , , dir = 1]) => {
                   const x = r.splits[split][k];
                   let style;
-                  if (pools && dir && typeof x === 'number') { const p = percentile(pools.get(k)?.get(r.season) || [], x, dir < 0); if (p != null) style = { background: `color-mix(in srgb, ${pctColor(p)} 38%, transparent)` }; }
+                  if (pools && dir && typeof x === 'number') { const p = percentile(pools.get(k)?.get(r.season) || [], x, dir < 0); if (p != null) style = shadeStyle(p); }
                   return <td key={k} className="mono" style={style}>{k === 'RRAA' ? <b>{fmt(k, x)}</b> : fmt(k, x)}</td>;
                 })}
               </tr>))}</tbody>

@@ -147,7 +147,7 @@ export default function GameLog({ id, role, season: pageSeason, seasons }) {
         <select value={last} onChange={(e) => setLast(e.target.value === 'all' ? 'all' : +e.target.value)}><option value="all">Whole season</option>{[30, 15, 10, 5].map((x) => <option key={x} value={x}>Last {x}</option>)}</select>
       </div>
       <div className="row">
-        <button type="button" className="btn sm" onClick={() => setPick(!pick)}>{pick ? 'Done' : `✎ Columns (${defs.length})`}</button>
+        <button type="button" className="btn sm" onClick={() => setPick(!pick)}>{pick ? 'Done' : `Columns (${defs.length})`}</button>
         <label className="small row"><input type="checkbox" checked={!!byMonth} onChange={(e) => setByMonth(e.target.checked)} /> Monthly subtotals</label>
         <label className="small row"><input type="checkbox" checked={!!chart} onChange={(e) => setChart(e.target.checked)} /> Rolling chart</label>
         {sort && <button type="button" className="btn sm" onClick={() => setSort(null)}>Date order</button>}
