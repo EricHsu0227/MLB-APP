@@ -1,6 +1,6 @@
 // Derives small lookup files from the season files (runs before `vite build` / `vite`):
 //   public/data/players/<role>/<id>.json  = { id, name, seasons: { "<year>": { team, splits } } }
-//   public/data/players-index.json        = [{ id, n: name, r: ["bat","pit"], y: [first,last], t: lastTeam }]
+//   public/data/players-index.json        = [{ id, n: name, r: roles, main role first, y: [first,last], t: lastTeam }]
 //   public/data/leaders.json              = { "<year>": { bat: [...top WAR], pit: [...top WAR] } }
 //   public/data/league-<role>.json        = { "<year>": { "<split>": { stat: [leagueAvg, q0, q10, ..., q100] } } }
 //     league quantiles of regulars (hitters 100+ PA, pitchers 20+ IP; splits 40+ PA / 60+ TBF) for color coding and
@@ -72,9 +72,14 @@ for (const role of ['bat', 'pit']) {
     const ys = Object.keys(e.seasons).sort();
     const cur = index.get(id) || { id, n: e.name, r: [], y: [ys[0], ys.at(-1)], t: e.seasons[ys.at(-1)].team };
     cur.r.push(role); cur.y = [Math.min(cur.y[0], ys[0]), Math.max(cur.y[1], ys.at(-1))];
+    // playing time in this role (PA as a hitter, batters faced as a pitcher), to pick the main role
+    const vol = Object.values(e.seasons).reduce((n, s) => n + (Number(s.splits.all?.[role === 'bat' ? 'PA' : 'TBF']) || 0), 0);
+    (cur.vol ||= {})[role] = vol;
+    if (role === 'pit' && vol > (cur.vol.bat || 0)) { cur.r = ['pit', 'bat'].filter((r) => cur.r.includes(r)); cur.t = e.seasons[ys.at(-1)].team; }
     index.set(id, cur);
   }
 }
+for (const p of index.values()) delete p.vol;
 fs.writeFileSync(path.join(root, 'players-index.json'), JSON.stringify([...index.values()]));
 fs.writeFileSync(path.join(root, 'leaders.json'), JSON.stringify(leaders));
 for (const role of ['bat', 'pit']) fs.writeFileSync(path.join(root, `league-${role}.json`), JSON.stringify(league[role]));

@@ -63,7 +63,7 @@ export default function StatTable({ role, file, seasons, season, split, keySet, 
 
   return (
     <section className="panel card stat-table">
-      <SectionTabs value={active} onChange={(s) => { setSel(s); setEdit(false); }}
+      <SectionTabs orderKey={`sec:order:${role}`} value={active} onChange={(s) => { setSel(s); setEdit(false); }}
         items={ids.filter((s) => !PITCH_SECS.includes(s)).map((s) => [s, s === 'custom' ? 'Custom' : sectionLabel(role, s)])}
         more={ids.filter((s) => PITCH_SECS.includes(s)).map((s) => [s, sectionLabel(role, s)])} />
       {active === 'custom' && (
