@@ -26,7 +26,7 @@ const GLOSS = {
   'K-BB%': 'Strikeout rate minus walk rate', WHIP: 'Walks + hits per inning', sp_stuff: 'Stuff+ (FanGraphs); 100 = average', sp_location: 'Location+ (FanGraphs); 100 = average', sp_pitching: 'Pitching+ (FanGraphs); 100 = average',
   AvgBatSpeed: 'Average bat speed (mph)', SwingLength: 'Average swing length (feet)', 'BlastContact%': 'Share of contact that is a blast', Spd: 'Speed score',
 };
-const LABELS = { sp_stuff: 'Stuff+', sp_location: 'Location+', sp_pitching: 'Pitching+', pb_stuff: 'PB Stuff', pb_command: 'PB Command', pb_overall: 'PitchingBot', RRAA_wRAA: 'RRAA wRAA', RRAA_Park: 'RRAA Park', RRAA_Lg: 'RRAA League', RRAA_PA: 'RRAA PA', RRAA_FRV: 'FRV (raw)', RRAA_Bat: 'RRAA Bat', RRAA_BsR: 'RRAA BsR', RRAA_Fld: 'RRAA Fld', RRAA_wOBA: 'wOBA allowed (RRAA)', lg_wwOBA: 'Lg wwOBA', lg_wOBA: 'Lg wOBA' };
+const LABELS = { sp_stuff: 'Stuff+', sp_location: 'Location+', sp_pitching: 'Pitching+', pb_stuff: 'PB Stuff', pb_command: 'PB Command', pb_overall: 'PitchingBot', RRAA_wRAA: 'RwRAA', RRAA_Park: 'RPARK', RRAA_Lg: 'RLG', RRAA_PA: 'RPA', RRAA_FRV: 'FRV (raw)', RRAA_Bat: 'RBAT', RRAA_BsR: 'RBSR', RRAA_Fld: 'RFLD', RRAA_wOBA: 'wOBA allowed (RRAA)', lg_wwOBA: 'Lg wwOBA', lg_wOBA: 'Lg wOBA' };
 const PREFIX = [[/^sc_/, '', ' (calc)'], [/^pfx/, '', ' (PFX)'], [/^pi(?=[A-Za-z])/, '', ' (PI)'], [/^sp_/, 'Stuff+ ', ''], [/^pb_/, 'PB ', '']];
 
 // Direction a stat is "good" in. 1 = higher is better, -1 = lower is better, 0 = neutral/context.
