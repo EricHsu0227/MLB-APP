@@ -73,8 +73,7 @@ const DEFAULT_COLS = { bat: ['PA', 'AB', 'R', 'H', '2B', '3B', 'HR', 'RBI', 'BB'
 export default function GameLog({ id, role, season: pageSeason, seasons }) {
   const group = role === 'bat' ? 'hitting' : 'pitching';
   const DEFS = role === 'bat' ? HIT : PIT;
-  const [season, setSeason] = useState(pageSeason);
-  useEffect(() => { setSeason(pageSeason); }, [pageSeason]);
+  const season = pageSeason; // the season picker above the tabs drives the game log too
   const [gt, setGt] = usePref('gamelog:type', 'R');
   const [site, setSite] = useState('all');
   const [month, setMonth] = useState('all');
@@ -137,7 +136,6 @@ export default function GameLog({ id, role, season: pageSeason, seasons }) {
   return (
     <>
       <div className="row gl-filters">
-        {seasons && <select value={season} onChange={(e) => setSeason(+e.target.value)}>{[...seasons].reverse().map((y) => <option key={y} value={y}>{y}</option>)}</select>}
         <Seg small value={gt} onChange={setGt} options={[['R', 'Regular'], ['P', 'Postseason']]} />
         <Seg small value={site} onChange={setSite} options={[['all', 'All'], ['home', 'Home'], ['away', 'Away']]} />
         <select value={month} onChange={(e) => setMonth(e.target.value)}><option value="all">Every month</option>{MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}</select>

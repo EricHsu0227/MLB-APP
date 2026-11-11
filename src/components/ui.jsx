@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { SPLITS, splitLabel, statDef } from '../lib/catalog.js';
 import { SECTIONS, noSplit, pickerGroups } from '../lib/sections.js';
 import { pctColor } from '../lib/themes.js';
-import { headshot, useData } from '../lib/data.js';
+import { headshot, useData, usePref } from '../lib/data.js';
 
 export function Seg({ value, onChange, options, small }) {
   return (
@@ -134,19 +134,41 @@ export function SubSplits({ line, k, d, main, role }) {
 }
 
 /** Section switcher: one row of underlined tabs that scrolls sideways (like the original), pitch-level
- *  sections at the end after a divider. The selected tab is kept in view. */
-export function SectionTabs({ items, more = [], value, onChange }) {
+ *  sections at the end after a divider. The selected tab is kept in view. With `orderKey`, the person can
+ *  reorder the sections ("Reorder" opens a list with up/down buttons); the order is saved per orderKey. */
+export function SectionTabs({ items, more = [], value, onChange, orderKey }) {
   const ref = useRef(null);
+  const [order, setOrder] = usePref(orderKey || 'sec:order:none', null);
+  const [editing, setEditing] = useState(false);
   useEffect(() => { // scroll the row (only the row, never the page) so the selected tab is visible
     const row = ref.current; const b = row?.querySelector('button.on'); if (!b) return;
     if (b.offsetLeft < row.scrollLeft || b.offsetLeft + b.offsetWidth > row.scrollLeft + row.clientWidth - 28) row.scrollLeft = b.offsetLeft - 24;
-  }, [value]);
+  }, [value, order]);
+  const all = [...items, ...more];
+  const saved = orderKey && Array.isArray(order) ? order : null;
+  const sorted = saved ? [...all].sort((a, b) => rankIn(saved, a[0], all) - rankIn(saved, b[0], all)) : null;
+  const move = (i, d) => { const ids = (sorted || all).map(([id]) => id); const j = i + d; if (j < 0 || j >= ids.length) return; [ids[i], ids[j]] = [ids[j], ids[i]]; setOrder(ids); };
   const btn = ([id, label]) => <button type="button" role="tab" aria-selected={value === id} key={id} className={value === id ? 'on' : ''} onClick={() => onChange(id)}>{label}</button>;
   return (
-    <div className="sectabs" role="tablist" ref={ref}>
-      {items.map(btn)}
-      {more.length > 0 && <span className="sectabs-div" aria-hidden="true" />}
-      {more.map(btn)}
-    </div>
+    <>
+      <div className="sectabs-wrap">
+        <div className="sectabs" role="tablist" ref={ref}>
+          {sorted ? sorted.map(btn) : <>{items.map(btn)}{more.length > 0 && <span className="sectabs-div" aria-hidden="true" />}{more.map(btn)}</>}
+        </div>
+        {orderKey && <button type="button" className={'sectabs-edit' + (editing ? ' on' : '')} onClick={() => setEditing(!editing)} title="Reorder sections" aria-label="Reorder sections">{editing ? 'Done' : 'Reorder'}</button>}
+      </div>
+      {editing && (
+        <div className="reorder">
+          {(sorted || all).map(([id, label], i, arr) => (
+            <div key={id} className="reorder-row">
+              <span className="grow">{label}</span>
+              <button type="button" className="btn sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${label} up`}>↑</button>
+              <button type="button" className="btn sm" disabled={i === arr.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${label} down`}>↓</button>
+            </div>))}
+          <div className="row"><button type="button" className="btn sm" onClick={() => setOrder(null)}>Reset to default order</button><span className="muted small">The order is saved on this device.</span></div>
+        </div>)}
+    </>
   );
 }
+// position in the saved order; sections added later keep their default place after the saved ones
+const rankIn = (saved, id, all) => { const i = saved.indexOf(id); return i >= 0 ? i : saved.length + all.findIndex(([x]) => x === id); };

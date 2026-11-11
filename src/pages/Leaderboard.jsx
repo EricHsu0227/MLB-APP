@@ -120,7 +120,7 @@ export default function Leaderboard({ index }) {
         </div>)}
       {roleSel === 'rraa' ? <RraaBoard seasons={seasons} lo={lo} hi={hi} split={split} team={team} q={q} xf={xf} /> : <>
 
-      <SectionTabs value={sec} onChange={(s) => { if (s === 'custom' && !custom) setCustom(cols.length ? cols : ['WAR']); setSec(s); setSort({ key: null, dir: -1 }); if (s === 'custom') setEdit(true); }}
+      <SectionTabs orderKey={`sec:order:${role}`} value={sec} onChange={(s) => { if (s === 'custom' && !custom) setCustom(cols.length ? cols : ['WAR']); setSec(s); setSort({ key: null, dir: -1 }); if (s === 'custom') setEdit(true); }}
         items={[['favs', 'My stats'], ...MY_GROUPS.map((g) => [g, sectionLabel(role, g)]), ...secOrder.filter((s) => !PITCH_SECS.includes(s)).map((s) => [s, sectionLabel(role, s)]), ['custom', 'Custom']]}
         more={secOrder.filter((s) => PITCH_SECS.includes(s)).map((s) => [s, sectionLabel(role, s)])} />
       {mine && edit && <section className="panel"><MyStatsEditor role={role} season={hi} group={sec} bare /></section>}

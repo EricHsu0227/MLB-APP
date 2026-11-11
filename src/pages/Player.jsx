@@ -71,14 +71,18 @@ export default function Player() {
           </div>
         </div>
         <div className="hero-ctrls row">
-          <SeasonSelect seasons={seasons} value={season} onChange={(y) => setParam('season', y)} />
-          <SplitSelect role={role} value={split} onChange={(v) => setParam('split', v)} />
           <Link className="btn sm" to={`/compare?p=${role}:${id}:${season}`}>Compare</Link>
         </div>
       </section>
 
       <div className="tabs main ptabs" role="tablist">
         {TABS.map(([t, l]) => <button type="button" role="tab" aria-selected={tab === t} key={t} className={tab === t ? 'on' : ''} onClick={() => setParam('tab', t)}>{tabLabel(t, l, role)}</button>)}
+      </div>
+
+      {/* season + split for whichever tab is open (each tab reads them) */}
+      <div className="toolbar tab-ctrls">
+        <label>Season <SeasonSelect seasons={seasons} value={season} onChange={(y) => setParam('season', y)} /></label>
+        {tab !== 'details' && tab !== 'games' && <label>Split <SplitSelect role={role} value={split} onChange={(v) => setParam('split', v)} /></label>}
       </div>
 
       {tab === 'overview' && <Overview {...ctx} />}
