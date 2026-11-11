@@ -6,3 +6,5 @@ public/data/leaders.json
 public/data/players
 public/data/players-index.json
 public/data/league-*.json
+team-sheet/raw
+team-sheet/mlb-team-sheet.html

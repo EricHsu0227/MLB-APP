@@ -22,6 +22,7 @@ export default function App() {
           <nav>
             <NavLink to="/leaderboard">Leaderboards</NavLink>
             <NavLink to="/compare">Compare</NavLink>
+            <a href="/team-sheet/">Team sheet</a>
             <NavLink to="/settings">Settings</NavLink>
           </nav>
           <PlayerSearch className="nav-search" placeholder="Search players" onPick={(p) => nav(`/player/${p.roles[0]}/${p.id}`)} />

@@ -1,0 +1,26 @@
+name: Team sheet - add or refresh seasons
+# Builds full-stat seasons for the printable team sheet at /team-sheet/ (Statcast pitches + daily rosters, 30-45 min per season).
+on:
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Seasons to build, space-separated (2015 or later), e.g. 2025 2024"
+        required: true
+permissions: { contents: write }
+concurrency: { group: data, cancel-in-progress: false }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pandas numpy
+      - run: python team-sheet/add_seasons.py ${{ github.event.inputs.seasons }}
+      - run: |
+          git config user.name "data-bot"; git config user.email "actions@users.noreply.github.com"
+          git add team-sheet/data public/team-sheet
+          git diff --cached --quiet && { echo "no data changes"; exit 0; }
+          git commit -m "team sheet: add seasons ${{ github.event.inputs.seasons }}"
+          for i in 1 2 3 4; do git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0; sleep $((i*15)); done; exit 1
