@@ -162,7 +162,10 @@ input[type=color] { width:38px; height:26px; padding:0 2px; border:1px solid var
   .nav-search { width:auto; flex:1; margin-left:8px }
   .panel { padding:9px; margin-bottom:8px }
   h1 { font-size:1.35em } .player-head { gap:10px } .player-head .avatar { width:52px; height:52px } .hero-ctrls { margin-left:0; width:100% }
-  table.t { font-size:.86em } .scroll.tall { max-height:70vh }
+  table.t { font-size:.86em }
+  /* phones: tables never get their own vertical scroll box (the page scrolls), and the sideways
+     scroll doesn't bounce past the edges, so no empty gaps open above or beside a table */
+  .scroll, .scroll.tall { max-height:none; overflow-x:auto; overflow-y:hidden; overscroll-behavior:none; -webkit-overflow-scrolling:touch }
   .toolbar { gap:8px 12px } .toolbar .grow-input { margin-left:0; width:100% }
   .pct-grid { grid-template-columns:1fr } .pct { grid-template-columns:96px 1fr 50px; gap:6px }
   .tabs button, .tabs.main button { padding:7px 10px 6px }
