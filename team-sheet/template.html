@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLB Team Sheet — A4 stat charts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style id="pagesize">@page { size: A4 portrait; margin: 0; }</style>
+<style>
+  :root{ --ink:#111111; --muted:#666666; --line:#e2e2e2; --accent:#111111; --accent-soft:#f1f1f1; --vl:#b45309; --vr:#1d4ed8; --fs:10px; --rowpad:0px; }
+  *{box-sizing:border-box}
+  input[type=checkbox]{accent-color:#111}
+  html,body{margin:0;height:100%}
+  body{font-family:Inter,system-ui,sans-serif;color:var(--ink);background:#e9ebef;display:flex}
+  #controls{width:360px;min-width:360px;height:100vh;overflow:auto;background:#fff;border-right:1px solid var(--line);padding:16px 16px 40px}
+  #controls h1{font-size:17px;margin:0 0 2px}
+  #controls .sub{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .ctl{margin:12px 0}
+  .ctl label:not(.check),.ctl .lbl{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:5px}
+  select,input[type=number]{width:100%;font:inherit;font-size:13px;padding:7px 8px;border:1px solid #d1d5db;border-radius:7px;background:#fff}
+  .row{display:flex;gap:8px}.row>*{flex:1}
+  .seg{display:flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden}
+  .seg button{flex:1;border:0;background:#fff;padding:7px 4px;font:inherit;font-size:12px;cursor:pointer;border-right:1px solid #d1d5db}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--accent);color:#fff;font-weight:600}
+  .cat{margin:8px 0 2px;font-size:11px;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;align-items:center}
+  .sel{border:1px solid var(--line);border-radius:6px;max-height:260px;overflow:auto}
+  .si{display:flex;align-items:center;gap:6px;padding:3px 6px;border-bottom:1px solid #f0f0f0;font-size:12px;background:#fff;font-family:'Roboto Condensed',sans-serif}
+  .si:last-child{border-bottom:0}
+  .si.drag{opacity:.4} .si.over{box-shadow:inset 0 2px 0 var(--ink)}
+  .si .h{cursor:grab;color:#999;user-select:none;letter-spacing:-2px}
+  .si .n{flex:1;font-weight:600}
+  .si label{display:flex;align-items:center;gap:3px;color:var(--muted);font-size:11px;cursor:pointer}
+  .si label.off{opacity:.35;cursor:default}
+  .si button{border:0;background:none;cursor:pointer;color:#777;font-size:12px;padding:0 3px}
+  .si button:hover{color:#000}
+  .cat a{font-weight:500;color:var(--accent);cursor:pointer;font-size:10.5px;margin-left:6px}
+  .chips{display:flex;flex-wrap:wrap;gap:4px}
+  .chip{font-size:11.5px;padding:3px 7px;border:1px solid #cfcfcf;border-radius:4px;cursor:pointer;user-select:none;background:#fff;font-family:'Roboto Condensed',sans-serif}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip.splitless{border-style:dashed}
+  .chip.na{opacity:.35;cursor:not-allowed}
+  .presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+  .presets button{font:inherit;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #bbb;background:#fff;color:var(--ink);cursor:pointer}
+  .presets button:hover{border-color:var(--ink)}
+  .check{display:flex;align-items:center;gap:7px;font-size:13px;margin:5px 0;cursor:pointer}
+  .hint{font-size:11px;color:var(--muted);line-height:1.4;margin-top:4px}
+  .badge{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:999px;margin-top:6px}
+  .badge.full{background:#f1f1f1;color:#111;border:1px solid #ccc}.badge.basic{background:#fff;color:#666;border:1px dashed #bbb}
+  #printBtn,#pdfBtn{width:100%;padding:10px;font:inherit;font-weight:600;font-size:14px;background:var(--ink);color:#fff;border:0;border-radius:8px;cursor:pointer;margin-top:8px}
+  #pdfBtn.alt{background:#fff;color:var(--ink);border:1.5px solid var(--ink)}
+  #pdfBtn:disabled{opacity:.5;cursor:wait}
+  .msg{margin-top:8px;font-size:12px;line-height:1.45;background:#fef3c7;color:#78350f;border-radius:8px;padding:8px 10px}
+  .box{border-top:1px solid var(--line);padding-top:12px;margin-top:16px}
+  input[type=text]{width:100%;font:inherit;font-size:13px;padding:7px 8px;border:1px solid #d1d5db;border-radius:7px}
+  button.sm,label.sm{flex:0 0 auto;font:inherit;font-size:12px;font-weight:600;padding:6px 10px;border-radius:7px;border:1.5px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;white-space:nowrap;text-align:center}
+  button.ghost,label.ghost{background:#fff;color:var(--ink)}
+  .row>button.sm.ghost,.row>label.sm{flex:1}
+  button.wide{width:100%;font:inherit;font-size:13px;font-weight:600;padding:9px;border-radius:8px;border:0;background:var(--ink);color:#fff;cursor:pointer}
+  button:disabled{opacity:.5;cursor:wait}
+  #status{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px}
+  #status.err{color:#b91c1c}
+  details{margin-top:14px;font-size:11.5px;color:var(--muted);line-height:1.45}
+  details summary{cursor:pointer;font-weight:600;color:var(--ink)}
+  #stage{flex:1;height:100vh;overflow:auto;padding:24px;display:flex;justify-content:center;align-items:flex-start}
+  #scaler{transform-origin:top center}
+  .page{width:210mm;height:297mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.15);padding:9mm 8mm;overflow:hidden;position:relative}
+  .page.landscape{width:297mm;height:210mm}
+  .page.overflow{height:auto;min-height:297mm}
+  .page.landscape.overflow{min-height:210mm}
+  #content{font-family:'Roboto Condensed','Arial Narrow',sans-serif;font-size:var(--fs);display:table;margin:0 auto}
+  .sheet-head{display:flex;justify-content:space-between;align-items:baseline;gap:2em;padding-bottom:.3em}
+  .sheet-head .t{font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:2.1em;line-height:1.05}
+  .sheet-head .s{font-size:1.1em;color:var(--muted);margin-top:.25em}
+  .sheet-head .r{text-align:right;font-family:Georgia,'Times New Roman',serif;font-size:1.3em;font-style:italic;white-space:nowrap}
+  .sect{margin-bottom:1em}
+  .sect h3{font-family:Inter,sans-serif;font-size:1.1em;margin:.3em 0 .25em}
+  .tag{font-size:.8em;padding:.1em .5em;border-radius:.4em;color:#fff;font-weight:600}
+  .tag.tot{background:var(--ink)}.tag.vl{background:var(--vl)}.tag.vr{background:var(--vr)}
+  table{border-collapse:collapse;font-variant-numeric:tabular-nums;border-top:1.5px solid #000;border-bottom:1.5px solid #000}
+  th,td{padding:calc(.16em + var(--rowpad)) .35em;text-align:right;white-space:nowrap;border-bottom:.5px solid #cfcfcf}
+  th{font-weight:700;background:#ececec;border-bottom:1px solid #000;cursor:pointer;user-select:none;vertical-align:bottom}
+  th.sorted{text-decoration:underline;text-underline-offset:.2em}
+  th.l,td.l{text-align:left}
+  td.name{font-weight:500}
+  td.dim,th.dim{color:var(--muted)}
+  tbody tr:nth-child(5n) td{border-bottom:.5px solid #8a8a8a}
+  tr.total td{font-weight:700;border-top:2.5px double #000;border-bottom:0}
+  td.lead{font-weight:700;color:#000}
+  th.grp{text-align:center;border-bottom:.5px solid #888;cursor:default}
+  th.sub-vl,th.sub-vr,th.sub-tot{font-weight:600}
+  .gl{border-left:.5px solid #9a9a9a}
+  td.bio{color:#444}
+  th.bio{font-weight:600}
+  td.act,th.act{text-align:left}
+  svg.tl{width:5.5em;height:.8em;vertical-align:-.08em;display:inline-block}
+  td.act .dd{margin-left:.35em;display:inline-block;min-width:1.8em;text-align:right}
+  td.act .ds{font-size:.82em;letter-spacing:-.01em;white-space:normal;display:inline-block;max-width:10.5em;line-height:1.05;vertical-align:middle}
+  td.act > *{vertical-align:middle}
+  .foot{margin-top:.6em;font-size:.85em;color:var(--muted);display:flex;justify-content:space-between;gap:2em}
+  .empty{padding:2em;text-align:center;color:var(--muted);font-family:Inter,sans-serif}
+  .page.snap{box-shadow:none} .page.snap .warn{display:none}
+  .warn{position:absolute;top:2mm;right:4mm;font:600 10px Inter,sans-serif;color:#b91c1c}
+  .back{display:inline-block;font-size:12px;color:var(--muted);text-decoration:none;margin-bottom:8px}
+  .back:hover{color:var(--ink)}
+  @media screen and (max-width:760px){
+    body{display:block;height:auto}
+    #controls{width:auto;min-width:0;height:auto;overflow:visible;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px 20px}
+    #stage{height:auto;overflow:hidden;padding:12px 0 24px}
+    select,input[type=number],input[type=text]{font-size:16px}
+  }
+  #printArea{display:none}
+  @media print{
+    body.two #stage{display:none !important} body.two #printArea{display:block} body.two #printArea .page{break-after:page;box-shadow:none}
+    body{display:block;background:#fff}
+    #controls,.warn{display:none !important}
+    #stage{padding:0;height:auto;overflow:visible;display:block}
+    #scaler{transform:none !important;width:auto !important;height:auto !important}
+    .page{box-shadow:none;margin:0}
+    .page.overflow{overflow:visible}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<aside id="controls">
+  <a class="back" href="/">&larr; MLB Stats</a>
+  <h1>MLB Team Sheet</h1>
+  <div class="sub">Any team, any season · FanGraphs stat set · L/R splits · one A4 page</div>
+
+  <div class="ctl row">
+    <div><label for="season">Season</label><select id="season"></select></div>
+    <div style="flex:2"><label for="team">Team</label><select id="team"></select></div>
+  </div>
+  <div id="seasonBadge"></div>
+
+  <div class="ctl"><span class="lbl">Group</span>
+    <div class="seg" id="groupSeg"><button data-v="hitting">Batting</button><button data-v="pitching">Pitching</button><button data-v="both">Both on one sheet</button></div>
+    <div id="editWrap" style="margin-top:8px" hidden><span class="lbl">Editing columns for</span>
+      <div class="seg" id="editSeg"><button data-v="hitting">Batting table</button><button data-v="pitching">Pitching table</button></div></div>
+  </div>
+
+  <div class="ctl"><label for="splitMode">Split view</label>
+    <select id="splitMode">
+      <option value="tot">Overall</option>
+      <option value="vl">vs Left only</option>
+      <option value="vr">vs Right only</option>
+      <option value="lr">vL | vR side by side</option>
+      <option value="tlr">Overall | vL | vR side by side</option>
+      <option value="stack">Stacked tables: Overall, vL, vR</option>
+    </select>
+    <div class="hint" id="splitHint"></div>
+  </div>
+
+  <div class="ctl"><span class="lbl">Stats to show</span>
+    <div class="presets" id="presets"></div>
+    <div class="cat" style="margin-top:4px"><span>Player info columns</span></div>
+    <div class="chips" id="bioChips"></div>
+    <div id="chips"></div>
+    <div class="cat" style="margin-top:12px"><span>Column order &amp; splits</span></div>
+    <div id="selList" class="sel"></div>
+    <div class="hint">Drag rows (or use ↑ ↓) to reorder columns. Untick “L/R” to show a stat without split columns in the side-by-side and vs-one-side views.</div>
+    <div class="hint">Dashed = no L/R split exists for that stat (overall column only). Faded = needs pitch-by-pitch data, only in built-in seasons.</div>
+  </div>
+
+  <div class="ctl row">
+    <div style="flex:2"><label for="sortStat">Sort by</label><select id="sortStat"></select></div>
+    <div><label for="sortDir">Order</label><select id="sortDir"><option value="desc">High → low</option><option value="asc">Low → high</option></select></div>
+  </div>
+  <div class="ctl" id="sortSplitWrap"><label for="sortSplit">Sort using</label>
+    <select id="sortSplit"><option value="tot">Overall</option><option value="vl">vs Left</option><option value="vr">vs Right</option></select>
+  </div>
+  <div class="hint" style="margin-top:-6px">Tip: click any column header on the sheet to sort by it.</div>
+
+  <div class="ctl row">
+    <div><label for="minQ" id="minQLbl">Min PA</label><input type="number" id="minQ" min="0" value="1" title="0 = everyone on the team"></div>
+    <div><label for="orient">Paper</label><select id="orient"><option value="auto">A4 auto (biggest text)</option><option value="portrait">A4 portrait</option><option value="landscape">A4 landscape</option></select></div>
+  </div>
+
+  <div class="ctl">
+    <label class="check"><input type="checkbox" id="optFit" checked> Fit to one page</label>
+    <label class="check"><input type="checkbox" id="optFill"> Stretch rows to fill the page</label>
+    <label class="check"><input type="checkbox" id="optTotals" checked> Team totals row</label>
+    <label class="check"><input type="checkbox" id="optLeaders" checked> Highlight team leaders</label>
+    <label for="actMode" style="margin-top:10px">Active roster column</label>
+    <select id="actMode"><option value="bar">Timeline bar + days</option><option value="dates">Dates on the active roster</option><option value="both">Timeline + dates</option><option value="off">Hide</option></select>
+    <div class="hint">When each player was on the team's active (26-man) roster, from daily roster snapshots. ★ seasons only.</div>
+  </div>
+
+  <div class="ctl"><label for="pdfMode">PDF pages</label>
+    <select id="pdfMode"><option value="one">One side: this sheet only</option><option value="team">Two sides: batting front, pitching back</option></select></div>
+  <div class="row"><button id="printBtn">Print</button><button id="pdfBtn" class="alt">Download PDF</button></div>
+  <div class="hint">Two sides prints or saves batting and pitching as two pages in the same orientation; turn on double-sided printing. In the print dialog choose A4, margins “None”, scale 100%.</div>
+  <div id="printMsg" class="msg" hidden></div>
+
+  <div class="ctl box"><span class="lbl">Layouts</span>
+    <div class="row"><input type="text" id="layName" placeholder="Name this layout"><button id="laySave" class="sm">Save</button></div>
+    <div class="row" style="margin-top:6px"><select id="layList"></select><button id="layApply" class="sm">Apply</button><button id="layDel" class="sm ghost">Delete</button></div>
+    <div class="row" style="margin-top:6px"><button id="layExport" class="sm ghost">Export layouts</button><label class="sm ghost filebtn">Import layouts<input type="file" id="layImport" accept=".json,application/json" hidden></label></div>
+    <div class="hint">A layout keeps your stats for batting and pitching, sorting, split view, minimum, paper and display options. It doesn't keep the team or season. Layouts are saved in this browser; use Export to move them to another one.</div>
+  </div>
+
+  <div class="ctl box"><span class="lbl">Export the whole season</span>
+    <select id="expOrder" style="margin-bottom:6px"><option value="one">One page per team: batting + pitching (30 pages)</option><option value="team">Each team front &amp; back (batting, then pitching)</option><option value="group">All batting pages, then all pitching pages</option></select>
+    <button id="expPdf" class="wide">Season PDF: all 30 teams</button>
+    <div class="row" style="margin-top:6px"><button id="expCsvH" class="sm ghost">Batting CSV</button><button id="expCsvP" class="sm ghost">Pitching CSV</button></div>
+    <div class="hint">Uses the current layout for every team: one page per team with both tables, or separate batting and pitching pages (60 pages). Front &amp; back pages of a team share one orientation, for double-sided printing. CSV has every player in the league with the chosen stats and splits.</div>
+    <div id="expMsg" class="msg" hidden></div>
+  </div>
+  <div id="status"></div>
+
+  <details><summary>How the numbers are made</summary>
+    <p><b>Built-in seasons</b> (★) are complete and work offline. Counting stats and L/R splits are MLB's official numbers. Plate discipline, batted ball, pitch type and pitch values come from every regular-season pitch in Statcast. wOBA weights, the wOBA scale, the FIP constant and park factors are calculated from that season's own data with FanGraphs' published method, so they land close to FanGraphs' values but not exactly on them.</p>
+    <p><b>Other seasons</b> load MLB's official stats live (internet needed) and use standard wOBA weights, with no park factors.</p>
+    <p>Not included: FanGraphs-only stats (WAR, Off, Def, BsR, UZR, Stuff+) and FanGraphs' Soft/Med/Hard%, which come from private data. Plate discipline uses the Statcast strike zone. ERA, W/L, R, ER, SB and CS don't exist as L/R splits.</p>
+  </details>
+</aside>
+
+<main id="stage"><div id="scaler"><div class="page" id="page"><div id="content"></div></div></div></main>
+<div id="printArea"></div>
+
+<!--__LIBS__-->
+<script>window.BUILTIN = /*__DATA__*/{};</script>
+<script>
+const API = 'https://statsapi.mlb.com/api/v1';
+const $ = id => document.getElementById(id);
+const cache = new Map();
+async function getJSON(url){
+  if(cache.has(url)) return cache.get(url);
+  const p = fetch(url).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+  cache.set(url,p);
+  try{ return await p; }catch(e){ cache.delete(url); throw e; }
+}
+
+/* =================================================================== stats */
+const div = (a,b) => (a==null||b==null||!isFinite(a)||!isFinite(b)||b===0) ? null : a/b;
+const has = (...xs) => xs.every(x=>x!=null);
+const ip = c => c.OUTS==null ? null : c.OUTS/3;
+const tb = c => c.TB!=null ? c.TB : (c.H==null?null : c.H+(c['2B']||0)+2*(c['3B']||0)+3*(c.HR||0));
+const single = c => c.H==null?null : c.H-(c['2B']||0)-(c['3B']||0)-(c.HR||0);
+const avg = c => div(c.H,c.AB);
+const obp = c => has(c.H,c.BB,c.AB) ? div(c.H+c.BB+(c.HBP||0), c.AB+c.BB+(c.HBP||0)+(c.SF||0)) : null;
+const slg = c => div(tb(c),c.AB);
+const pct = (a,b) => div(a,b);
+const fbAll = c => has(c.FB,c.PU) ? c.FB+c.PU : null;
+const bip = c => has(c.GB,c.LD,c.FB,c.PU) ? c.GB+c.LD+c.FB+c.PU : null;
+function woba(c,K){
+  if(!has(c.AB,c.H,c.BB)) return null;
+  const w=K.w, ubb=c.BB-(c.IBB||0);
+  return div(w.uBB*ubb + w.HBP*(c.HBP||0) + w['1B']*single(c) + w['2B']*(c['2B']||0) + w['3B']*(c['3B']||0) + w.HR*(c.HR||0),
+             c.AB + ubb + (c.SF||0) + (c.HBP||0));
+}
+function wraa(c,K){ const w=woba(c,K); return w==null||!c.PA ? null : (w-K.lgwOBA)/K.scale*c.PA; }
+function wrc(c,K){ const w=woba(c,K); return w==null||!c.PA ? null : ((w-K.lgwOBA)/K.scale + K.lgRPA)*c.PA; }
+function wrcPlus(c,K){
+  const w=woba(c,K); if(w==null||!c.PA) return null;
+  const pf=c._PF||1, lgR=K.lgRPA, lgL=(K.lgRPA_by&&K.lgRPA_by[c._LG])||lgR;
+  return ((( (w-K.lgwOBA)/K.scale + lgR) + (lgR - pf*lgR)) / lgL) * 100;
+}
+function wsb(c,K){ if(!has(c.SB,c.CS,c.H,c.BB)) return null; return c.SB*0.2 - c.CS*(2*K.runsPerOut+0.075) - K.lgwSB*(single(c)+c.BB+(c.HBP||0)-(c.IBB||0)); }
+function fip(c,K){ const i=ip(c); if(!i||!has(c.HR,c.BB,c.SO)) return null; return (13*c.HR+3*(c.BB+(c.HBP||0))-2*c.SO)/i + K.FIPC; }
+function xfip(c,K){ const i=ip(c), f=fbAll(c); if(!i||f==null||!has(c.BB,c.SO)) return null; return (13*f*K.lgHRFB+3*(c.BB+(c.HBP||0))-2*c.SO)/i + K.FIPC; }
+function siera(c){
+  const pa=c.BF; if(!pa||!has(c.SO,c.BB,c.GB,c.FB,c.PU)) return null;
+  const so=c.SO/pa, bb=c.BB/pa, net=(c.GB-c.FB-c.PU)/pa;
+  return 6.145 - 16.986*so + 11.434*bb - 1.858*net + 7.653*so*so + (net>0?-1:1)*6.664*net*net + 10.130*so*net - 5.195*bb*net;
+}
+const era = c => div(c.ER==null?null:c.ER*9, ip(c));
+/* ---- Eric's stats (ported from Platoon src/lib/stats.js and MLB-APP RRAA) ---- */
+const wDen = c => has(c.AB,c.BB) ? c.AB+c.BB-(c.IBB||0)+(c.SF||0)+(c.HBP||0) : null;
+const xwoba = c => div(c.XWN, c.XWD);
+function penW(c,K,hitter){ const d=wDen(c); if(!d||c.SO==null) return null; return (c.SO*K.kPen + (hitter?(c.GIDP||0)*K.gdpPen:0))*K.scale/d; }
+const lgV = (K,hitter) => K.lgwOBA - (K.lgKrate*K.kPen + (hitter?K.lgGDPrate*K.gdpPen:0))*K.scale;
+function plusFrom(wv,K,hitter){ return wv==null?null : (((wv-lgV(K,hitter))/K.scale + K.lgRPA)/K.lgRPA)*100; }
+function valueW(c,K,hitter){ const w=woba(c,K), pen=penW(c,K,hitter); return has(w,pen) ? (w-pen)/(c._PF||1) : null; }
+function expectW(c,K,hitter){ const x=xwoba(c), pen=penW(c,K,hitter); return has(x,pen) ? x-pen : null; }
+function replRuns(c){ const G=c.G||1, gs=Math.min(1,(c.GS||0)/G), i=ip(c); return i==null?null:(0.03*(1-gs)+0.12*gs)*(i/9); }   // wins
+function pitRAA(wv,c,K){ return wv==null||!c.BF ? null : ((lgV(K,false)-wv)/K.scale)*c.BF; }
+function warFIP(c,K){ const f=fip(c,K), i=ip(c); if(f==null||!i) return null; const lgRA9=K.lgERA*K.raPerEra, r9=(f+(lgRA9-K.lgERA))/(c._PF||1); return ((lgRA9-r9)*i/9)/K.rW + replRuns(c); }
+function warWOBA(c,K){ const w=woba(c,K), i=ip(c); if(w==null||!i||!c.BF) return null; return (((K.lgwOBA-w/(c._PF||1))/K.scale)*c.BF)/K.rW + replRuns(c); }
+const rrRate = (c,k) => div(c['RR_'+k+'_n'], c.RR_PA);
+const minus = (v,c,lg) => v==null||!lg ? null : 100*(v + v - v*(c._PF||1))/lg;
+
+// def: k label, cat, fmt, f(c,K), split (exists as L/R split), sc (needs pitch-by-pitch), low (lower is better), vol (volume, no leader)
+const PTYPES = [['FA','4-seam'],['SI','Sinker'],['FC','Cutter'],['SL','Slider'],['ST','Sweeper'],['CU','Curve'],['CH','Change'],['FS','Splitter'],['KN','Knuckle']];
+const typedN = c => PTYPES.reduce((s,[p])=>s+(c['n'+p]||0),0);
+function pitchDefs(pitcher){
+  const out=[];
+  for(const [p,name] of PTYPES) out.push({k:p+'%', cat:'Pitch Type', fmt:'pct', sc:true, split:true, vol:true, f:c=>c['n'+p]==null?null:div(c['n'+p],typedN(c)), tip:name+' usage'});
+  for(const [p,name] of PTYPES) out.push({k:'v'+p, cat:'Pitch Type', fmt:'r1', sc:true, split:true, f:c=>div(c['vs'+p],c['vn'+p]), tip:name+' avg velocity', vol:!pitcher});
+  for(const [p,name] of PTYPES) out.push({k:'w'+p, cat:'Pitch Values', fmt:'r1', sc:true, split:true, f:c=>c['rv'+p]==null||!c['n'+p]?null:c['rv'+p], tip:name+' runs above average'});
+  for(const [p,name] of PTYPES) out.push({k:'w'+p+'/C', cat:'Pitch Values', fmt:'r2', sc:true, split:true, rate:true, f:c=>div(c['rv'+p]==null?null:c['rv'+p]*100,c['n'+p]), tip:name+' runs per 100 pitches'});
+  return out;
+}
+function discDefs(pitcher){
+  const L = pitcher; // for pitchers, chasing/whiffs are good, zone contact is bad
+  return [
+    {k:'O-Swing%', cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, low:!L, f:c=>div(c.OSW,c.OZONE)},
+    {k:'Z-Swing%', cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.ZSW,c.ZONE), low:L},
+    {k:'Swing%',   cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.SW,c.NP), vol:true},
+    {k:'O-Contact%',cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.OCT,c.OSW), low:L},
+    {k:'Z-Contact%',cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.ZCT,c.ZSW), low:L},
+    {k:'Contact%', cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.CT,c.SW), low:L},
+    {k:'Zone%',    cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.ZONE,c.NP), vol:!L},
+    {k:'F-Strike%',cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.FST,c.FPA), low:!L},
+    {k:'SwStr%',   cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.WHF,c.NP), low:!L},
+    {k:'CStr%',    cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.CSTR,c.NP), low:!L},
+    {k:'CSW%',     cat:'Plate Discipline', fmt:'pct', sc:true, split:true, rate:true, f:c=>has(c.CSTR,c.WHF)?div(c.CSTR+c.WHF,c.NP):null, low:!L},
+    {k:'Pitches',  cat:'Plate Discipline', fmt:'int', sc:true, split:true, f:c=>c.NP, vol:true},
+    {k:pitcher?'P/IP':'P/PA', cat:'Plate Discipline', fmt:pitcher?'r1':'r2', sc:true, split:true, rate:true, f:c=>pitcher?div(c.NP,ip(c)):div(c.NP,c.PA), low:pitcher, vol:!pitcher},
+  ];
+}
+function bbDefs(pitcher){
+  const P=pitcher;
+  return [
+    {k:'GB/FB', cat:'Batted Ball', fmt:'r2', sc:true, split:true, rate:true, f:c=>div(c.GB,fbAll(c)), low:!P, vol:!P},
+    {k:'LD%',   cat:'Batted Ball', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.LD,bip(c)), low:P},
+    {k:'GB%',   cat:'Batted Ball', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.GB,bip(c)), low:!P, vol:!P},
+    {k:'FB%',   cat:'Batted Ball', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(fbAll(c),bip(c)), low:P, vol:P},
+    {k:'IFFB%', cat:'Batted Ball', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.PU,fbAll(c)), low:!P},
+    {k:'HR/FB', cat:'Batted Ball', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.HR,fbAll(c)), low:P},
+    {k:'Pull%', cat:'Batted Ball', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.PULL,c.SPR), vol:true},
+    {k:'Cent%', cat:'Batted Ball', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.CENT,c.SPR), vol:true},
+    {k:'Oppo%', cat:'Batted Ball', fmt:'pct', sc:true, split:true, rate:true, f:c=>div(c.OPPO,c.SPR), vol:true},
+  ];
+}
+const I = (k,cat,f,o={}) => ({k,cat,fmt:'int',f,split:true,...o});
+const HIT = [
+  I('G','Standard',c=>c.G,{vol:true}), I('PA','Standard',c=>c.PA,{vol:true}), I('AB','Standard',c=>c.AB,{vol:true}),
+  I('H','Standard',c=>c.H), I('1B','Standard',single), I('2B','Standard',c=>c['2B']), I('3B','Standard',c=>c['3B']), I('HR','Standard',c=>c.HR),
+  I('R','Standard',c=>c.R,{split:false}), I('RBI','Standard',c=>c.RBI), I('BB','Standard',c=>c.BB), I('IBB','Standard',c=>c.IBB),
+  I('SO','Standard',c=>c.SO,{low:true,vol:true}), I('HBP','Standard',c=>c.HBP), I('SF','Standard',c=>c.SF,{vol:true}), I('SH','Standard',c=>c.SH,{vol:true}),
+  I('GDP','Standard',c=>c.GIDP,{low:true,vol:true}), I('SB','Standard',c=>c.SB,{split:false}), I('CS','Standard',c=>c.CS,{split:false,low:true,vol:true}),
+  I('TB','Standard',tb), I('XBH','Standard',c=>has(c['2B'],c['3B'],c.HR)?c['2B']+c['3B']+c.HR:null),
+  {k:'AVG',cat:'Standard',fmt:'r3',rate:true,split:true,f:avg},
+  {k:'BB%',cat:'Advanced',fmt:'pct',rate:true,split:true,f:c=>pct(c.BB,c.PA)},
+  {k:'K%', cat:'Advanced',fmt:'pct',rate:true,split:true,low:true,f:c=>pct(c.SO,c.PA)},
+  {k:'BB/K',cat:'Advanced',fmt:'r2',rate:true,split:true,f:c=>div(c.BB,c.SO)},
+  {k:'OBP',cat:'Advanced',fmt:'r3',rate:true,split:true,f:obp},
+  {k:'SLG',cat:'Advanced',fmt:'r3',rate:true,split:true,f:slg},
+  {k:'OPS',cat:'Advanced',fmt:'r3',rate:true,split:true,f:c=>has(obp(c),slg(c))?obp(c)+slg(c):null},
+  {k:'ISO',cat:'Advanced',fmt:'r3',rate:true,split:true,f:c=>has(slg(c),avg(c))?slg(c)-avg(c):null},
+  {k:'BABIP',cat:'Advanced',fmt:'r3',rate:true,split:true,f:c=>has(c.H,c.AB,c.SO)?div(c.H-(c.HR||0),c.AB-c.SO-(c.HR||0)+(c.SF||0)):null},
+  {k:'wOBA',cat:'Advanced',fmt:'r3',rate:true,split:true,f:woba},
+  {k:'wRAA',cat:'Advanced',fmt:'r1',split:true,f:wraa},
+  {k:'wRC',cat:'Advanced',fmt:'int',split:true,f:wrc},
+  {k:'wRC+',cat:'Advanced',fmt:'int',rate:true,split:true,f:wrcPlus},
+  {k:'wSB',cat:'Advanced',fmt:'r1',split:false,f:wsb},
+  ...bbDefs(false), ...discDefs(false), ...pitchDefs(false),
+  {k:'Value+',cat:"Eric's stats",fmt:'int',rate:true,split:true,f:(c,K)=>plusFrom(valueW(c,K,true),K,true),tip:'wOBA with K and GIDP penalty, park-adjusted, 100 = average'},
+  {k:'Expected+',cat:"Eric's stats",fmt:'int',rate:true,split:true,rr:true,f:(c,K)=>plusFrom(expectW(c,K,true),K,true),tip:'xwOBA with K and GIDP penalty, no park factor'},
+  {k:'wwOBA',cat:"Eric's stats",fmt:'r3',rate:true,split:true,rr:true,f:c=>rrRate(c,'wwOBA'),tip:'wOBA that also credits/debits K, GIDP and productive outs (MLB-APP)'},
+  {k:'wwRC+',cat:"Eric's stats",fmt:'int',rate:true,split:true,rr:true,f:c=>rrRate(c,'wwRC+'),tip:'wRC+ built on wwOBA (MLB-APP)'},
+  {k:'RRAA',cat:"Eric's stats",fmt:'r1',split:true,rr:true,f:c=>c.RR_RRAA,tip:'Real Runs Above Average: batting + baserunning + fielding (MLB-APP)'},
+  {k:'RBAT',cat:"Eric's stats",fmt:'r1',split:true,rr:true,f:c=>c.RR_RRAA_Bat},
+  {k:'RBSR',cat:"Eric's stats",fmt:'r1',split:true,rr:true,f:c=>c.RR_RRAA_BsR,tip:'Savant baserunning runs (split by PA for vL/vR)'},
+  {k:'RFLD',cat:"Eric's stats",fmt:'r1',split:true,rr:true,f:c=>c.RR_RRAA_Fld,tip:'Savant FRV minus team-average FRV per inning (split by PA for vL/vR)'},
+  {k:'RWAR',cat:"Eric's stats",fmt:'r2',split:false,rr:true,f:c=>c.RR_RWAR,tip:'RRAA as wins above replacement (MLB-APP)'},
+];
+const PIT = [
+  I('W','Standard',c=>c.W,{split:false}), I('L','Standard',c=>c.L,{split:false,low:true,vol:true}),
+  {k:'ERA',cat:'Standard',fmt:'r2',rate:true,low:true,split:false,f:era},
+  I('G','Standard',c=>c.G,{vol:true}), I('GS','Standard',c=>c.GS,{split:false,vol:true}), I('CG','Standard',c=>c.CG,{split:false}),
+  I('ShO','Standard',c=>c.SHO,{split:false}), I('SV','Standard',c=>c.SV,{split:false}), I('HLD','Standard',c=>c.HLD,{split:false}),
+  I('BS','Standard',c=>c.BS,{split:false,low:true,vol:true}), I('GF','Standard',c=>c.GF,{split:false,vol:true}),
+  {k:'IP',cat:'Standard',fmt:'ip',split:true,f:c=>c.OUTS,vol:true},
+  I('TBF','Standard',c=>c.BF,{vol:true}), I('H','Standard',c=>c.H,{low:true,vol:true}), I('R','Standard',c=>c.R,{split:false,low:true,vol:true}),
+  I('ER','Standard',c=>c.ER,{split:false,low:true,vol:true}), I('HR','Standard',c=>c.HR,{low:true,vol:true}), I('BB','Standard',c=>c.BB,{low:true,vol:true}),
+  I('IBB','Standard',c=>c.IBB,{low:true,vol:true}), I('HBP','Standard',c=>c.HBP,{low:true,vol:true}), I('WP','Standard',c=>c.WP,{low:true,vol:true}),
+  I('BK','Standard',c=>c.BK,{split:false,low:true,vol:true}), I('SO','Standard',c=>c.SO),
+  {k:'K/9',cat:'Advanced',fmt:'r2',rate:true,split:true,f:c=>div(c.SO==null?null:c.SO*9,ip(c))},
+  {k:'BB/9',cat:'Advanced',fmt:'r2',rate:true,split:true,low:true,f:c=>div(c.BB==null?null:c.BB*9,ip(c))},
+  {k:'K/BB',cat:'Advanced',fmt:'r2',rate:true,split:true,f:c=>div(c.SO,c.BB)},
+  {k:'H/9',cat:'Advanced',fmt:'r2',rate:true,split:true,low:true,f:c=>div(c.H==null?null:c.H*9,ip(c))},
+  {k:'HR/9',cat:'Advanced',fmt:'r2',rate:true,split:true,low:true,f:c=>div(c.HR==null?null:c.HR*9,ip(c))},
+  {k:'K%',cat:'Advanced',fmt:'pct',rate:true,split:true,f:c=>pct(c.SO,c.BF)},
+  {k:'BB%',cat:'Advanced',fmt:'pct',rate:true,split:true,low:true,f:c=>pct(c.BB,c.BF)},
+  {k:'K-BB%',cat:'Advanced',fmt:'pct',rate:true,split:true,f:c=>has(c.SO,c.BB)?div(c.SO-c.BB,c.BF):null},
+  {k:'AVG',cat:'Advanced',fmt:'r3',rate:true,split:true,low:true,f:avg},
+  {k:'OBP',cat:'Advanced',fmt:'r3',rate:true,split:true,low:true,f:obp},
+  {k:'SLG',cat:'Advanced',fmt:'r3',rate:true,split:true,low:true,f:slg},
+  {k:'OPS',cat:'Advanced',fmt:'r3',rate:true,split:true,low:true,f:c=>has(obp(c),slg(c))?obp(c)+slg(c):null},
+  {k:'wOBA allowed',cat:'Advanced',fmt:'r3',rate:true,split:true,low:true,f:woba},
+  {k:'WHIP',cat:'Advanced',fmt:'r2',rate:true,split:true,low:true,f:c=>has(c.BB,c.H)?div(c.BB+c.H,ip(c)):null},
+  {k:'BABIP',cat:'Advanced',fmt:'r3',rate:true,split:true,low:true,f:c=>has(c.H,c.AB,c.SO)?div(c.H-(c.HR||0),c.AB-c.SO-(c.HR||0)+(c.SF||0)):null},
+  {k:'LOB%',cat:'Advanced',fmt:'pct',rate:true,split:false,f:c=>has(c.H,c.BB,c.R,c.HR)?div(c.H+c.BB+(c.HBP||0)-c.R,c.H+c.BB+(c.HBP||0)-1.4*c.HR):null},
+  {k:'ERA-',cat:'Advanced',fmt:'int',rate:true,split:false,low:true,f:(c,K)=>minus(era(c),c,K.lgERA)},
+  {k:'FIP-',cat:'Advanced',fmt:'int',rate:true,split:true,low:true,f:(c,K)=>minus(fip(c,K),c,K.lgERA)},
+  {k:'xFIP-',cat:'Advanced',fmt:'int',rate:true,split:true,low:true,sc:true,f:(c,K)=>minus(xfip(c,K),c,K.lgERA)},
+  {k:'FIP',cat:'Advanced',fmt:'r2',rate:true,split:true,low:true,f:fip},
+  {k:'E-F',cat:'Advanced',fmt:'r2',rate:true,split:false,f:(c,K)=>{const a=era(c),b=fip(c,K);return has(a,b)?a-b:null}, vol:true},
+  {k:'xFIP',cat:'Advanced',fmt:'r2',rate:true,split:true,low:true,sc:true,f:xfip},
+  {k:'SIERA',cat:'Advanced',fmt:'r2',rate:true,split:true,low:true,sc:true,f:siera},
+  {k:'RA9',cat:'Advanced',fmt:'r2',rate:true,split:false,low:true,f:c=>div(c.R==null?null:c.R*9,ip(c))},
+  ...bbDefs(true), ...discDefs(true), ...pitchDefs(true),
+  {k:'wRC+ allowed',cat:"Eric's stats",fmt:'int',rate:true,split:true,low:true,f:(c,K)=>wrcPlus({...c,PA:c.BF},K),tip:'wRC+ from wOBA allowed, park-adjusted (lower is better)'},
+  {k:'Value+ allowed',cat:"Eric's stats",fmt:'int',rate:true,split:true,low:true,f:(c,K)=>plusFrom(valueW(c,K,false),K,false),tip:'wOBA allowed with K credit, park-adjusted (lower is better)'},
+  {k:'Expected+ allowed',cat:"Eric's stats",fmt:'int',rate:true,split:true,low:true,rr:true,f:(c,K)=>plusFrom(expectW(c,K,false),K,false),tip:'xwOBA allowed with K credit, no park factor (lower is better)'},
+  {k:'vRAA',cat:"Eric's stats",fmt:'r1',split:true,f:(c,K)=>pitRAA(valueW(c,K,false),c,K)},
+  {k:'eRAA',cat:"Eric's stats",fmt:'r1',split:true,rr:true,f:(c,K)=>pitRAA(expectW(c,K,false),c,K)},
+  {k:'vWAR',cat:"Eric's stats",fmt:'r1',split:false,f:(c,K)=>{const r=pitRAA(valueW(c,K,false),c,K);return r==null?null:r/K.rW+replRuns(c)}},
+  {k:'eWAR',cat:"Eric's stats",fmt:'r1',split:false,rr:true,f:(c,K)=>{const r=pitRAA(expectW(c,K,false),c,K);return r==null?null:r/K.rW+replRuns(c)}},
+  {k:'WAR (FIP)',cat:"Eric's stats",fmt:'r1',split:false,f:warFIP},
+  {k:'WAR (wOBA)',cat:"Eric's stats",fmt:'r1',split:false,f:warWOBA,tip:'Pitcher WAR built on wOBA allowed instead of FIP'},
+  {k:'RRAA',cat:"Eric's stats",fmt:'r1',split:true,rr:true,f:c=>c.RR_RRAA,tip:'Runs saved from wOBA allowed, park-adjusted (MLB-APP)'},
+  {k:'wwOBA allowed',cat:"Eric's stats",fmt:'r3',rate:true,split:true,low:true,rr:true,f:c=>rrRate(c,'wwOBA')},
+  {k:'wwRC+ allowed',cat:"Eric's stats",fmt:'int',rate:true,split:true,low:true,rr:true,f:c=>rrRate(c,'wwRC+')},
+  {k:'RWAR',cat:"Eric's stats",fmt:'r2',split:false,rr:true,f:c=>c.RR_RWAR},
+];
+for(const d of [...HIT,...PIT]) if(['Batted Ball','Plate Discipline','Pitch Type','Pitch Values'].includes(d.cat) || d.rr) d.sc=true;
+const DEFS = {hitting:HIT, pitching:PIT};
+const CATS = ['Standard','Advanced','Batted Ball','Plate Discipline','Pitch Type','Pitch Values',"Eric's stats"];
+const PRESETS = {
+  hitting:{
+    'Dashboard':['G','PA','HR','R','RBI','SB','BB%','K%','ISO','BABIP','AVG','OBP','SLG','wOBA','wRC+'],
+    'Standard':['G','AB','PA','H','1B','2B','3B','HR','R','RBI','BB','IBB','SO','HBP','SF','SH','GDP','SB','CS','AVG'],
+    'Advanced':['PA','BB%','K%','BB/K','AVG','OBP','SLG','OPS','ISO','BABIP','wOBA','wRC','wRAA','wRC+','wSB'],
+    'Batted Ball':['PA','BABIP','GB/FB','LD%','GB%','FB%','IFFB%','HR/FB','Pull%','Cent%','Oppo%'],
+    'Plate Discipline':['PA','O-Swing%','Z-Swing%','Swing%','O-Contact%','Z-Contact%','Contact%','Zone%','F-Strike%','SwStr%','CStr%','CSW%'],
+    'Pitch Type':['Pitches','FA%','vFA','SI%','vSI','FC%','SL%','ST%','CU%','CH%','FS%'],
+    'Pitch Values':['PA','wFA','wSI','wFC','wSL','wST','wCU','wCH','wFS','wFA/C','wSL/C','wCH/C'],
+    'Splits view':['PA','HR','BB%','K%','ISO','BABIP','AVG','OBP','SLG','wOBA','wRC+'],
+    "Eric's stats":['PA','wOBA','wRC+','Value+','Expected+','wwOBA','wwRC+','RBAT','RBsR','RFLD','RRAA','RWAR'],
+  },
+  pitching:{
+    'Dashboard':['W','L','SV','G','GS','IP','K/9','BB/9','HR/9','BABIP','LOB%','GB%','HR/FB','ERA','FIP','xFIP'],
+    'Standard':['W','L','ERA','G','GS','CG','ShO','SV','HLD','BS','IP','TBF','H','R','ER','HR','BB','IBB','HBP','WP','BK','SO'],
+    'Advanced':['IP','K/9','BB/9','K/BB','HR/9','K%','BB%','K-BB%','AVG','WHIP','BABIP','LOB%','ERA-','FIP-','xFIP-','ERA','FIP','E-F','xFIP','SIERA'],
+    'Batted Ball':['IP','BABIP','GB/FB','LD%','GB%','FB%','IFFB%','HR/FB','Pull%','Cent%','Oppo%'],
+    'Plate Discipline':['IP','O-Swing%','Z-Swing%','Swing%','O-Contact%','Z-Contact%','Contact%','Zone%','F-Strike%','SwStr%','CStr%','CSW%'],
+    'Pitch Type':['IP','FA%','vFA','SI%','vSI','FC%','vFC','SL%','vSL','ST%','CU%','vCU','CH%','vCH','FS%'],
+    'Pitch Values':['IP','wFA','wSI','wFC','wSL','wST','wCU','wCH','wFS','wFA/C','wSL/C','wCH/C'],
+    'Splits view':['TBF','K%','BB%','K-BB%','HR/9','AVG','OBP','SLG','wOBA allowed','FIP','xFIP'],
+    "Eric's stats":['IP','wOBA allowed','wRC+ allowed','Value+ allowed','Expected+ allowed','vRAA','eRAA','vWAR','eWAR','WAR (FIP)','WAR (wOBA)','RRAA','wwOBA allowed','wwRC+ allowed','RWAR'],
+  }
+};
+
+function fmt(v, f){
+  if(v==null||!isFinite(v)) return '—';
+  switch(f){
+    case 'int': return String(Math.round(v));
+    case 'r3': { const s=v.toFixed(3); return (v<1&&v>=0) ? s.slice(1) : (v<0&&v>-1 ? '-'+s.slice(2) : s); }
+    case 'r2': return v.toFixed(2);
+    case 'r1': return v.toFixed(1);
+    case 'pct': return (v*100).toFixed(1)+'%';
+    case 'ip': return Math.floor(v/3)+'.'+(v%3);
+  }
+  return String(v);
+}
+
+/* =================================================================== state */
+const NOW = new Date();
+const LAST = NOW.getMonth() >= 3 ? NOW.getFullYear() : NOW.getFullYear()-1;
+window.BUILTIN = window.BUILTIN || {};
+const BUILT = (window.MANIFEST || Object.keys(window.BUILTIN)).map(Number).sort((a,b)=>b-a);
+const TOP = Math.max(LAST, ...BUILT, 0);
+let S = {
+  season: BUILT[0] || LAST, team: 147, group:'hitting', split:'tot',
+  stats:{hitting:[...PRESETS.hitting['Dashboard']], pitching:[...PRESETS.pitching['Dashboard']]},
+  sort:{hitting:'wRC+', pitching:'IP'}, dir:{hitting:'desc', pitching:'desc'}, sortSplit:'tot',
+  minQ:1, orient:'auto', fit:true, fill:false, totals:true, leaders:true, view:'hitting', act:'bar', bio:{hitting:['num','pos','bats','age'], pitching:['num','pos','throws','age']}, noSplit:{hitting:[],pitching:[]}
+};
+try{ const saved=JSON.parse(localStorage.getItem('mlbTeamSheet4')||'null'); if(saved) S={...S,...saved,stats:{...S.stats,...(saved.stats||{})},sort:{...S.sort,...(saved.sort||{})},dir:{...S.dir,...(saved.dir||{})}}; }catch(e){}
+function save(){ try{ localStorage.setItem('mlbTeamSheet4', JSON.stringify(S)); }catch(e){} }
+const isBuilt = y => BUILT.includes(+y);
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('could not load '+src)); document.head.appendChild(s); }); }
+async function ensureSeason(y){ if(window.BUILTIN[y]) return; setStatus(`Loading ${y} data…`); await loadScript(`data/${y}.js${window.DATAVER&&window.DATAVER[y]?'?v='+window.DATAVER[y]:''}`); if(!window.BUILTIN[y]) throw new Error('season file missing'); }
+
+let DATA=null, TEAMS=[], K=null;
+
+/* =================================================================== UI */
+function setStatus(msg, err){ const el=$('status'); el.textContent=msg||''; el.className=err?'err':''; }
+function buildSeasonSelect(){
+  const sel=$('season'); sel.innerHTML='';
+  for(let y=TOP; y>=1876; y--){ const o=document.createElement('option'); o.value=y; o.textContent=y+(isBuilt(y)?'  ★':''); sel.appendChild(o); }
+  sel.value=S.season;
+}
+async function loadTeams(){
+  let list;
+  if(isBuilt(S.season)) await ensureSeason(S.season);
+  if(isBuilt(S.season)) list = window.BUILTIN[S.season].teams.map(t=>({id:t.id,name:t.name,league:{name:t.league},division:{name:t.division}}));
+  else { setStatus('Loading teams…'); list = ((await getJSON(`${API}/teams?sportId=1&season=${S.season}`)).teams||[]).filter(t=>!t.sport||t.sport.id===1); }
+  TEAMS = list.sort((a,b)=>a.name.localeCompare(b.name));
+  const sel=$('team'); sel.innerHTML=''; const groups={};
+  for(const t of TEAMS){ const lg=t.league?.name||'Other'; (groups[lg]=groups[lg]||[]).push(t); }
+  const rank=x=>/American/.test(x)?0:/National/.test(x)?1:2;
+  for(const lg of Object.keys(groups).sort((a,b)=>rank(a)-rank(b)||a.localeCompare(b))){
+    const og=document.createElement('optgroup'); og.label=lg;
+    for(const t of groups[lg]){ const o=document.createElement('option'); o.value=t.id; o.textContent=t.name; og.appendChild(o); }
+    sel.appendChild(og);
+  }
+  if(!TEAMS.some(t=>t.id==S.team)) S.team=TEAMS[0]?.id;
+  sel.value=S.team;
+}
+const BIO=[{k:'num',l:'#'},{k:'pos',l:'Pos'},{k:'bats',l:'B'},{k:'throws',l:'T'},{k:'age',l:'Age'},{k:'ht',l:'Ht'},{k:'wt',l:'Wt'},
+  {k:'born',l:'Born'},{k:'place',l:'Birthplace',left:true},{k:'debut',l:'Debut'}];
+const BIO_NAME={num:'Number',pos:'Position',bats:'Bats',throws:'Throws',age:'Age',ht:'Height',wt:'Weight',born:'Birth date',place:'Birthplace',debut:'MLB debut'};
+function bioVal(p,k){
+  const v=p[k]; if(v==null||v==='') return '';
+  if(k==='born'||k==='debut'){ const [y,m,d]=String(v).split('-'); return k==='debut'?`${+m}/${+d}/${y.slice(2)}`:`${+m}/${+d}/${y}`; }
+  return v;
+}
+function buildBio(){
+  const box=$('bioChips'); box.innerHTML=''; const on=S.bio[S.group];
+  for(const b of BIO){
+    const c=document.createElement('span'); c.className='chip'+(on.includes(b.k)?' on':''); c.textContent=BIO_NAME[b.k];
+    c.onclick=()=>{ const i=on.indexOf(b.k); if(i>=0) on.splice(i,1); else on.push(b.k); S.bio[S.group]=BIO.map(x=>x.k).filter(k=>on.includes(k)); buildBio(); render(); };
+    box.appendChild(c);
+  }
+}
+function buildSelList(){
+  const box=$('selList'); box.innerHTML=''; const g=S.group, list=S.stats[g], off=new Set(S.noSplit[g]||[]);
+  if(!list.length){ box.innerHTML='<div class="si" style="color:#999">No stats chosen</div>'; return; }
+  list.forEach((k,i)=>{
+    const d=DEFS[g].find(x=>x.k===k); if(!d) return;
+    const row=document.createElement('div'); row.className='si'; row.draggable=true; row.dataset.k=k;
+    row.innerHTML=`<span class="h" title="Drag to reorder">⋮⋮</span><span class="n">${esc(k)}</span>
+      <label class="${d.split?'':'off'}" title="${d.split?'Show L/R split columns for this stat':'No L/R split exists for this stat'}"><input type="checkbox" ${d.split&&!off.has(k)?'checked':''} ${d.split?'':'disabled'}>L/R</label>
+      <button data-m="-1" title="Move up">↑</button><button data-m="1" title="Move down">↓</button><button data-x title="Remove">×</button>`;
+    row.querySelector('input').onchange=e=>{ const s2=new Set(S.noSplit[g]||[]); e.target.checked?s2.delete(k):s2.add(k); S.noSplit[g]=[...s2]; render(); };
+    row.querySelectorAll('button[data-m]').forEach(b=>b.onclick=()=>{ const j=i+(+b.dataset.m); if(j<0||j>=list.length) return; [list[i],list[j]]=[list[j],list[i]]; buildSelList(); render(); });
+    row.querySelector('button[data-x]').onclick=()=>{ list.splice(i,1); buildChips(); buildSortSelect(); render(); };
+    row.ondragstart=e=>{ e.dataTransfer.setData('text/plain',k); row.classList.add('drag'); };
+    row.ondragend=()=>row.classList.remove('drag');
+    row.ondragover=e=>{ e.preventDefault(); row.classList.add('over'); };
+    row.ondragleave=()=>row.classList.remove('over');
+    row.ondrop=e=>{ e.preventDefault(); row.classList.remove('over'); const from=e.dataTransfer.getData('text/plain'); if(from===k) return;
+      const a=list.indexOf(from); if(a<0) return; list.splice(a,1); list.splice(list.indexOf(k),0,from); buildSelList(); render(); };
+    box.appendChild(row);
+  });
+}
+function buildChips(){
+  buildBio(); buildSelList();
+  const defs=DEFS[S.group], on=new Set(S.stats[S.group]), full=isBuilt(S.season);
+  const box=$('chips'); box.innerHTML='';
+  for(const cat of CATS){
+    const ds=defs.filter(d=>d.cat===cat); if(!ds.length) continue;
+    const h=document.createElement('div'); h.className='cat';
+    h.innerHTML=`<span>${cat}</span><span><a data-a="all">all</a><a data-a="none">none</a></span>`;
+    h.querySelector('[data-a=all]').onclick=()=>{ for(const d of ds) if(full||!d.sc) on.add(d.k); setStats(on); };
+    h.querySelector('[data-a=none]').onclick=()=>{ for(const d of ds) on.delete(d.k); setStats(on); };
+    box.appendChild(h);
+    const wrap=document.createElement('div'); wrap.className='chips';
+    for(const d of ds){
+      const na = d.sc && !full;
+      const c=document.createElement('span'); c.className='chip'+(on.has(d.k)?' on':'')+(d.split?'':' splitless')+(na?' na':''); c.textContent=d.k;
+      c.title = (d.tip?d.tip+'. ':'') + (na?'Needs pitch-by-pitch data — only in ★ seasons. ':'') + (d.split?'':'No L/R split exists.');
+      c.onclick=()=>{ if(na) return; on.has(d.k)?on.delete(d.k):on.add(d.k); setStats(on); };
+      wrap.appendChild(c);
+    }
+    box.appendChild(wrap);
+  }
+  const pb=$('presets'); pb.innerHTML='';
+  for(const [name,list] of Object.entries(PRESETS[S.group])){
+    const b=document.createElement('button'); b.textContent=name;
+    b.onclick=()=>{ setStats(new Set(list), list); const keep=S.stats[S.group]; if(!keep.includes(S.sort[S.group])){ const r=[...keep].reverse().find(k=>defs.find(d=>d.k===k)?.rate); S.sort[S.group]=r||keep[0]; S.dir[S.group]=defs.find(d=>d.k===S.sort[S.group])?.low?'asc':'desc'; } buildSortSelect(); render(); };
+    pb.appendChild(b);
+  }
+}
+function setStats(set, order){ const defs=DEFS[S.group], cur=S.stats[S.group];
+  // keep the existing order, add new ones at the end (or use the preset's own order)
+  S.stats[S.group] = order ? order.filter(k=>defs.some(d=>d.k===k)) : [...cur.filter(k=>set.has(k)), ...defs.map(d=>d.k).filter(k=>set.has(k)&&!cur.includes(k))];
+  buildChips(); buildSortSelect(); render(); }
+function buildSortSelect(){
+  const sel=$('sortStat'); sel.innerHTML='';
+  const o0=document.createElement('option'); o0.value='__name'; o0.textContent='Player name'; sel.appendChild(o0);
+  if(isBuilt(S.season)){ const oa=document.createElement('option'); oa.value='__active'; oa.textContent='Days on active roster'; sel.appendChild(oa); }
+  const shown=new Set(S.stats[S.group]);
+  const og1=document.createElement('optgroup'); og1.label='Shown stats'; sel.appendChild(og1);
+  for(const d of DEFS[S.group]) if(shown.has(d.k)){ const o=document.createElement('option'); o.value=d.k; o.textContent=d.k; og1.appendChild(o); }
+  for(const cat of CATS){
+    const og=document.createElement('optgroup'); og.label=cat;
+    for(const d of DEFS[S.group]) if(d.cat===cat && !shown.has(d.k)){ const o=document.createElement('option'); o.value=d.k; o.textContent=d.k; og.appendChild(o); }
+    if(og.children.length) sel.appendChild(og);
+  }
+  sel.value=S.sort[S.group]; $('sortDir').value=S.dir[S.group];
+}
+function syncControls(){
+  for(const b of $('groupSeg').children) b.classList.toggle('on', b.dataset.v===S.view);
+  $('editWrap').hidden = S.view!=='both';
+  for(const b of $('editSeg').children) b.classList.toggle('on', b.dataset.v===S.group);
+  $('splitMode').value=S.split; $('sortSplit').value=S.sortSplit; $('minQ').value=S.minQ; $('orient').value=S.orient;
+  $('actMode').value=S.act;
+  $('optFit').checked=S.fit; $('optFill').checked=S.fill; $('optTotals').checked=S.totals; $('optLeaders').checked=S.leaders;
+  const hp=S.group==='hitting';
+  $('minQLbl').textContent = S.view==='both'?'Min PA / TBF':hp?'Min PA':'Min TBF';
+  $('splitMode').options[1].textContent = hp?'vs LHP only':'vs LHB only';
+  $('splitMode').options[2].textContent = hp?'vs RHP only':'vs RHB only';
+  $('sortSplit').options[1].textContent = hp?'vs LHP':'vs LHB';
+  $('sortSplit').options[2].textContent = hp?'vs RHP':'vs RHB';
+  $('sortSplitWrap').style.display = ['lr','tlr'].includes(S.split)?'':'none';
+  $('splitHint').textContent = hp?'Batting splits are vs left- / right-handed pitchers.':'Pitching splits are vs left- / right-handed batters.';
+  $('seasonBadge').innerHTML = isBuilt(S.season) ? `<span class="badge full">★ Built-in: full FanGraphs stat set, works offline</span>` : `<span class="badge basic">Live from MLB: standard &amp; advanced stats only (needs internet)</span>`;
+}
+
+/* =================================================================== data */
+const API_MAP = {
+  hitting:{G:'gamesPlayed',PA:'plateAppearances',AB:'atBats',R:'runs',H:'hits','2B':'doubles','3B':'triples',HR:'homeRuns',RBI:'rbi',BB:'baseOnBalls',IBB:'intentionalWalks',SO:'strikeOuts',HBP:'hitByPitch',SF:'sacFlies',SH:'sacBunts',SB:'stolenBases',CS:'caughtStealing',GIDP:'groundIntoDoublePlay',TB:'totalBases'},
+  pitching:{G:'gamesPitched',GS:'gamesStarted',W:'wins',L:'losses',SV:'saves',HLD:'holds',BS:'blownSaves',CG:'completeGames',SHO:'shutouts',GF:'gamesFinished',OUTS:'outs',BF:'battersFaced',AB:'atBats',H:'hits',R:'runs',ER:'earnedRuns','2B':'doubles','3B':'triples',HR:'homeRuns',BB:'baseOnBalls',IBB:'intentionalWalks',SO:'strikeOuts',HBP:'hitBatsmen',WP:'wildPitches',BK:'balks',SF:'sacFlies',SH:'sacBunts',TB:'totalBases'}
+};
+function apiCounts(s, group){
+  const o={}; for(const [k,src] of Object.entries(API_MAP[group])){ const v=s[src]; o[k]=v==null?null:Number(v); }
+  if(group==='pitching'){ if(o.OUTS==null) o.OUTS = s.outsPitched!=null?Number(s.outsPitched):null; if(o.G==null&&s.gamesPlayed!=null) o.G=Number(s.gamesPlayed); if(o.HBP==null&&s.hitByPitch!=null) o.HBP=Number(s.hitByPitch); }
+  return o;
+}
+function fromArr(arr, fields){ if(!arr) return null; const o={}; fields.forEach((k,i)=>o[k]=arr[i]); return o; }
+
+function loadBuiltin(){
+  const B=window.BUILTIN[S.season], SCF=B.fields.sc;
+  K=B.consts;
+  const team=B.teams.find(t=>t.id==S.team);
+  const pf=(K.PF&&K.PF[S.team])||1, lg=team?.lg||'AL';
+  const by={hitting:[],pitching:[]};
+  for(const g of ['hitting','pitching']){ const F=B.fields[g]; const players=by[g];
+  for(const r of B.rows[g]){
+    if(r.t!=S.team) continue;
+    const pp=B.people[r.p]||[String(r.p),String(r.p),'','',''];
+    const p={g,id:r.p,name:pp[0],last:pp[1],bats:pp[2],throws:pp[3],pos:pp[4],ht:pp[5],wt:pp[6],born:pp[7],place:pp[8],debut:pp[9],age:r.age,num:r.num, act:B.active?.s?.[`${r.t}-${r.p}`]||(B.active?[]:null)};
+    for(const code of ['tot','vl','vr']){
+      const base=fromArr(r[code],F); const sc=fromArr(r['sc_'+code],SCF);
+      p[code] = base||sc ? Object.assign({_PF:pf,_LG:lg}, base||{}, sc||{}, r['rr_'+code]||{}) : null;
+    }
+    players.push(p);
+  } }
+  DATA={by, team:{name:team?.name, league:{name:team?.league}, division:{name:team?.division}}, season:S.season, team_id:S.team, hasSplits:true, built:true, builtDate:B.built, active:B.active?{start:B.active.start,n:B.active.n}:null};
+  setStatus(`${by.hitting.length} batters, ${by.pitching.length} pitchers · built-in data (${B.built}).`);
+  render();
+}
+
+async function liveConsts(season){
+  // league totals for this season -> wOBA scale, lg R/PA, FIP constant; standard linear weights
+  const [h,p] = await Promise.all(['hitting','pitching'].map(g=>getJSON(`${API}/teams/stats?stats=season&group=${g}&season=${season}&sportIds=1`)));
+  const sum=(js,g)=>{ const o={}; for(const sp of js.stats[0].splits){ const c=apiCounts(sp.stat,g); for(const k in c) o[k]=(o[k]||0)+(c[k]||0); } return o; };
+  const LH=sum(h,'hitting'), LP=sum(p,'pitching');
+  const w={uBB:.69,HBP:.72,'1B':.88,'2B':1.25,'3B':1.58,HR:2.03};
+  const s1=LH.H-LH['2B']-LH['3B']-LH.HR, den=LH.AB+LH.BB-LH.IBB+LH.SF+LH.HBP;
+  const raw=(w.uBB*(LH.BB-LH.IBB)+w.HBP*LH.HBP+w['1B']*s1+w['2B']*LH['2B']+w['3B']*LH['3B']+w.HR*LH.HR)/den;
+  const lgOBP=(LH.H+LH.BB+LH.HBP)/(LH.AB+LH.BB+LH.HBP+LH.SF);
+  const ipL=LP.OUTS/3, lgERA=LP.ER*9/ipL, rpo=LH.R/LP.OUTS;
+  // standard FanGraphs-scale weights (scale ≈1.21 at lgOBP ≈.320); rescale so league wOBA = league OBP this season
+  const f=lgOBP/raw, ws={}; for(const k in w) ws[k]=w[k]*f;
+  return {w:ws, scale:1.21*f, lgwOBA:lgOBP, lgOBP, lgRPA:LH.R/LH.PA, lgERA, FIPC: lgERA-(13*LP.HR+3*(LP.BB+LP.HBP)-2*LP.SO)/ipL, lgHRFB:.11, runsPerOut:rpo,
+          lgwSB:(LH.SB*0.2-LH.CS*(2*rpo+0.075))/(s1+LH.BB+LH.HBP-LH.IBB), PF:{},
+          kPen:.015, gdpPen:.37, lgKrate:LH.SO/LH.PA, lgGDPrate:LH.GIDP/LH.PA, rW:9*(LP.R/ipL)*1.5+3, raPerEra:(LP.R/ipL)/(LP.ER/ipL)};
+}
+let loadToken=0;
+async function loadData(){
+  const tok=++loadToken;
+  if(isBuilt(S.season)){ try{ await ensureSeason(S.season); }catch(e){ setStatus(`Couldn't load ${S.season} data (${e.message}).`,true); return; } if(tok!==loadToken) return; return loadBuiltin(); }
+  const {season,team}=S;
+  setStatus('Loading stats from MLB…');
+  try{
+    const grp=g=>{ const base=`${API}/stats?group=${g}&season=${season}&teamId=${team}&playerPool=ALL&limit=1000`;
+      return Promise.all([getJSON(`${base}&stats=season`), getJSON(`${base}&stats=statSplits&sitCodes=vl,vr`).catch(()=>({stats:[]}))]); };
+    const [[hTot,hSpl],[pTot,pSpl],roster,KK] = await Promise.all([grp('hitting'), grp('pitching'),
+      getJSON(`${API}/teams/${team}/roster?rosterType=fullSeason&season=${season}`).catch(()=>({roster:[]})), liveConsts(season).catch(()=>null)]);
+    if(tok!==loadToken) return;
+    K = KK || {w:{uBB:.69,HBP:.72,'1B':.88,'2B':1.25,'3B':1.58,HR:2.03},scale:1,lgwOBA:.315,lgRPA:.12,lgERA:4.2,FIPC:3.1,lgHRFB:.11,runsPerOut:.17,lgwSB:0,PF:{},kPen:.015,gdpPen:.37,lgKrate:.2,lgGDPrate:.018,rW:9.5,raPerEra:1.085};
+    let hasSplits=false; const by={}, all=new Map();
+    for(const [g,tot,spl] of [['hitting',hTot,hSpl],['pitching',pTot,pSpl]]){
+      const players=new Map();
+      const P=(pl,pos)=>{ if(!players.has(pl.id)) players.set(pl.id,{g,id:pl.id,name:pl.fullName,last:pl.lastName||pl.fullName,pos:pos&&pos!=='X'?pos:'',tot:null,vl:null,vr:null}); return players.get(pl.id); };
+      for(const sp of (tot.stats?.[0]?.splits||[])){ const p=P(sp.player,sp.position?.abbreviation); p.tot={...apiCounts(sp.stat,g),_PF:1}; p.age=sp.stat.age; }
+      for(const sp of (spl.stats?.[0]?.splits||[])){ const code=sp.split?.code; if(code!=='vl'&&code!=='vr') continue; hasSplits=true; P(sp.player,sp.position?.abbreviation)[code]={...apiCounts(sp.stat,g),_PF:1}; }
+      by[g]=[...players.values()]; for(const p of by[g]) (all.get(p.id)||all.set(p.id,[]).get(p.id)).push(p);
+    }
+    const nums={}; for(const r of (roster.roster||[])) nums[r.person.id]={num:r.jerseyNumber,pos:r.position?.abbreviation};
+    const ids=[...all.keys()];
+    for(let i=0;i<ids.length;i+=150){
+      try{ const pj=await getJSON(`${API}/people?personIds=${ids.slice(i,i+150).join(',')}`);
+        for(const pp of pj.people||[]) for(const p of (all.get(pp.id)||[])){ p.bats=pp.batSide?.code||''; p.throws=pp.pitchHand?.code||''; p.last=pp.lastName||p.last; p.ht=(pp.height||'').replace(/ /g,''); p.wt=pp.weight||''; p.born=pp.birthDate||''; p.place=[pp.birthCity,pp.birthStateProvince||pp.birthCountry].filter(Boolean).join(', '); p.debut=pp.mlbDebutDate||''; if(!p.pos) p.pos=pp.primaryPosition?.abbreviation||''; } }catch(e){}
+    }
+    for(const list of all.values()) for(const p of list){ const r=nums[p.id]; if(r){ p.num=r.num||''; if(!p.pos) p.pos=r.pos||''; } }
+    if(tok!==loadToken) return;
+    const t=TEAMS.find(t=>t.id==team);
+    DATA={by, team:t, season, team_id:team, hasSplits, built:false};
+    setStatus(all.size ? `${by.hitting.length} batters, ${by.pitching.length} pitchers loaded live.`+(hasSplits?'':' MLB has no L/R splits for this season.') : 'No stats found.');
+    render();
+  }catch(e){
+    if(tok!==loadToken) return;
+    DATA=null; render();
+    setStatus(`Couldn't reach MLB's stats server (${e.message}). Live seasons need internet; ★ seasons work offline.`, true);
+  }
+}
+
+/* =================================================================== render */
+// pitching tables leave out position players who pitched (mop-up innings); two-way players (Ohtani) stay
+const OHTANI=660271;
+const isPitcher = p => ['P','TWP','SP','RP'].includes(p.pos) || p.id===OHTANI;
+const listFor = g => g==='pitching' ? DATA.by[g].filter(isPitcher) : DATA.by[g];
+const qualOf=(p,w)=>{ const c=p[w]; if(!c) return 0; return p.g==='hitting'?(c.PA||0):(c.BF||0); };
+const valueOf=(p,w,d)=>{ const c=p[w]; if(!c) return null; const v=d.f(c,K); return v==null||!isFinite(v)?null:v; };
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+const actDays = p => p.act ? p.act.reduce((s,[a,b])=>s+b-a+1,0) : null;
+function dayStr(i){ const d=new Date(DATA.active.start+'T00:00:00'); d.setDate(d.getDate()+i); return (d.getMonth()+1)+'/'+d.getDate(); }
+function monthTicks(){ const A=DATA.active, d0=new Date(A.start+'T00:00:00'), out=[]; for(let i=1;i<A.n;i++){ const d=new Date(d0); d.setDate(d.getDate()+i); if(d.getDate()===1) out.push([i,d.toLocaleString('en',{month:'short'})]); } return out; }
+function actBar(p){
+  const n=DATA.active.n, ticks=monthTicks();
+  return `<svg class="tl" viewBox="0 0 ${n} 10" preserveAspectRatio="none"><rect x="0" y="4.2" width="${n}" height="1.6" fill="#cfcfcf"/>${ticks.map(([i])=>`<rect x="${i}" y="0" width=".6" height="10" fill="#fff"/>`).join('')}${(p.act||[]).map(([a,b])=>`<rect x="${a}" y="1.5" width="${b-a+1}" height="7" fill="#222"/>`).join('')}</svg>`;
+}
+function actHead(){
+  if(S.act==='dates') return 'Active';
+  const n=DATA.active.n, first=new Date(DATA.active.start+'T00:00:00').toLocaleString('en',{month:'short'});
+  const tk=monthTicks(); const labels=((tk[0]&&tk[0][0]<n*0.08)?tk:[[0,first],...tk]).map(([i,m])=>`<span style="position:absolute;left:${(i/n*100).toFixed(1)}%;font-size:.85em">${m[0]}</span>`).join('');
+  return `<span style="display:inline-block;position:relative;width:5.5em;height:1.1em;vertical-align:bottom">${labels}</span>`;
+}
+function dayParts(i){ const d=new Date(DATA.active.start+'T00:00:00'); d.setDate(d.getDate()+i); return [d.getMonth()+1,d.getDate()]; }
+function stintStr(a,b){
+  if(a===0 && b===DATA.active.n-1) return 'Full';
+  const [m1,d1]=dayParts(a), [m2,d2]=dayParts(b);
+  if(a===b) return `${m1}/${d1}`;
+  return m1===m2 ? `${m1}/${d1}–${d2}` : `${m1}/${d1}–${m2}/${d2}`;
+}
+function actCell(p){
+  if(!p.act) return '<td class="act dim">—</td>';
+  const days=actDays(p), dates=p.act.map(([a,b])=>stintStr(a,b)).join(' ')||'—';
+  if(S.act==='dates') return `<td class="act ds">${dates}</td>`;
+  return `<td class="act">${actBar(p)}${S.act==='both'?` <span class="ds">${dates}</span>`:''}<span class="dd">${days}</span></td>`;
+}
+function render(){
+  syncControls(); save();
+  const content=$('content');
+  if(!DATA || !DATA.by || DATA.season!=S.season || DATA.team_id!=S.team){ content.innerHTML='<div class="empty">Loading…</div>'; fit(); return; }
+  const avail = d => DATA.built || !d.sc;
+  const t=DATA.team, both=S.view==='both';
+  const SPLIT_NAME = g => ({tot:'Overall',vl:'vs '+(g==='hitting'?'LHP':'LHB'),vr:'vs '+(g==='hitting'?'RHP':'RHB')});
+  const one = both ? '' : (S.view==='hitting'?'Batting':'Pitching')+(['vl','vr'].includes(S.split)?' '+SPLIT_NAME(S.view)[S.split]:'');
+  let html=`<div class="sheet-head"><div class="t">${esc(DATA.season+' '+(t?.name||''))}</div><div class="r">${one}</div></div>`;
+  if(S.split!=='tot' && !DATA.hasSplits) html+=`<div class="empty">MLB has no left/right split data for ${DATA.season}. Choose “Overall” or a later season.</div>`;
+  for(const g of (both?['hitting','pitching']:[S.view])){
+  const defs=DEFS[g];
+  const cols=S.stats[g].map(k=>defs.find(d=>d.k===k)).filter(d=>d&&avail(d));
+  const sortKey=S.sort[g], dir=S.dir[g], sortDef=defs.find(d=>d.k===sortKey);
+  const splitName=SPLIT_NAME(g), gName=g==='hitting'?'Batting':'Pitching';
+  if(!cols.length) html+=`<div class="empty">Pick some ${gName.toLowerCase()} stats on the left.</div>`;
+  const tables = S.split==='stack'?['tot','vl','vr']:[S.split];
+  for(const mode of tables){
+    if(mode!=='tot' && !DATA.hasSplits) continue;
+    if(!cols.length) break;
+    const subs = mode==='lr'?['vl','vr'] : mode==='tlr'?['tot','vl','vr'] : [mode];
+    const sortWhich = subs.length>1 ? (subs.includes(S.sortSplit)?S.sortSplit:subs[0]) : subs[0];
+    const offSplit=new Set(S.noSplit[g]||[]);
+    const cs = cols.map(d=>({d, ws:(d.split&&!offSplit.has(d.k))?subs:subs.filter(w=>w==='tot')})).filter(x=>x.ws.length);
+    if(!cs.length){ html+=`<div class="empty">None of the chosen stats exist as L/R splits.</div>`; continue; }
+    let rows = listFor(g).filter(p=>subs.some(w=>p[w]) && Math.max(...subs.map(w=>qualOf(p,w)))>=S.minQ);
+    rows.sort((a,b)=>{
+      if(sortKey==='__name') return dir==='asc'?a.last.localeCompare(b.last):b.last.localeCompare(a.last);
+      if(sortKey==='__active'){ const x=actDays(a)??-1, y=actDays(b)??-1; return dir==='desc'?y-x:x-y; }
+      const va=sortDef?valueOf(a,sortWhich,sortDef):null, vb=sortDef?valueOf(b,sortWhich,sortDef):null;
+      if(va==null&&vb==null) return qualOf(b,sortWhich)-qualOf(a,sortWhich);
+      if(va==null) return 1; if(vb==null) return -1;
+      return (dir==='desc'?vb-va:va-vb) || qualOf(b,sortWhich)-qualOf(a,sortWhich);
+    });
+    const leaders={};
+    if(S.leaders) for(const w of subs){
+      const maxQ=Math.max(0,...rows.map(p=>qualOf(p,w)));
+      for(const {d} of cs){
+        if(d.vol) continue;
+        const pool=rows.filter(p=>!d.rate || qualOf(p,w)>=maxQ*0.4);
+        let best=null; for(const p of pool){ const v=valueOf(p,w,d); if(v==null) continue; if(best==null||(d.low?v<best:v>best)) best=v; }
+        leaders[w+'|'+d.k]=best;
+      }
+    }
+    const isLead=(w,d,v)=>S.leaders && v!=null && !d.vol && !(d.low&&!d.rate) && leaders[w+'|'+d.k]===v;
+    const lab=[both?gName:'', S.split==='stack'?splitName[mode]:'', both&&['vl','vr'].includes(S.split)?splitName[mode]:''].filter(Boolean).join(' · ');
+    html += lab ? `<div class="sect"><h3>${lab}</h3>` : `<div class="sect">`;
+    html += `<table><thead>`;
+    const bioCols = (S.bio[g]||[]).map(k=>BIO.find(b=>b.k===k)).filter(Boolean);
+    const info = bioCols.map(b=>b.l);
+    const showAct = S.act!=='off' && DATA.active;
+    const actTh = showAct ? `<th class="act gl${sortKey==='__active'?' sorted':''}" data-g="${g}" data-sort="__active" title="Days on the active roster">${actHead()}</th>` : '';
+    if(subs.length>1){
+      html += `<tr><th class="grp l" colspan="${1+info.length}"></th>${cs.map(({d,ws})=>`<th class="grp gl" colspan="${ws.length}" title="${esc(d.tip||'')}">${esc(d.k)}</th>`).join('')}${showAct?'<th class="grp gl"></th>':''}</tr>`;
+      html += `<tr><th class="l${sortKey==='__name'?' sorted':''}" data-g="${g}" data-sort="__name">Name</th>${bioCols.map(b=>`<th class="bio${b.left?' l':''}">${b.l}</th>`).join('')}`;
+      for(const {d,ws} of cs) ws.forEach((w,i)=>{ html+=`<th data-g="${g}" data-sort="${esc(d.k)}" data-w="${w}" class="sub-${w}${i===0?' gl':''}${d.k===sortKey&&w===sortWhich?' sorted':''}">${w==='tot'?'Tot':w==='vl'?'vL':'vR'}</th>`; });
+      html += `${actTh}</tr>`;
+    } else {
+      html += `<tr><th class="l${sortKey==='__name'?' sorted':''}" data-g="${g}" data-sort="__name">Name</th>${bioCols.map(b=>`<th class="bio${b.left?' l':''}">${b.l}</th>`).join('')}`;
+      for(const {d} of cs) html += `<th data-g="${g}" data-sort="${esc(d.k)}" class="${d.k===sortKey?'sorted':''}" title="${esc(d.tip||'')}">${esc(d.k)}</th>`;
+      html += `${actTh}</tr>`;
+    }
+    html += `</thead><tbody>`;
+    for(const p of rows){
+      html += `<tr><td class="l name">${esc(p.name)}</td>`;
+      for(const b of bioCols) html += `<td class="bio${b.left?' l':''}">${esc(bioVal(p,b.k))}</td>`;
+      for(const {d,ws} of cs) ws.forEach((w,i)=>{
+        const v=valueOf(p,w,d);
+        const cls=[subs.length>1&&i===0?'gl':'', d.k===sortKey&&w===sortWhich?'sorted':'', isLead(w,d,v)?'lead':''].filter(Boolean).join(' ');
+        html += `<td class="${cls}">${fmt(v,d.fmt)}</td>`;
+      });
+      if(showAct) html += actCell(p);
+      html += `</tr>`;
+    }
+    if(!rows.length) html += `<tr><td class="l dim" colspan="99">No players.</td></tr>`;
+    if(S.totals && rows.length){
+      html += `<tr class="total"><td class="l">Total</td>${'<td></td>'.repeat(bioCols.length)}`;
+      const tot={};
+      for(const w of subs){ const list=rows.map(p=>p[w]).filter(Boolean); const o={}; for(const c of list) for(const k in c){ if(k[0]==='_') continue; if(c[k]!=null) o[k]=(o[k]||0)+c[k]; else if(!(k in o)) o[k]=null; }
+        if(list[0]){ o._PF=list[0]._PF; o._LG=list[0]._LG; } tot[w]=o; }
+      for(const {d,ws} of cs) ws.forEach((w,i)=>{
+        let v = ['G','GS','GF','CG'].includes(d.k) ? null : d.f(tot[w],K);
+        html += `<td class="${subs.length>1&&i===0?'gl':''}">${fmt(v==null||!isFinite(v)?null:v,d.fmt)}</td>`;
+      });
+      html += `${showAct?'<td class="gl"></td>':''}</tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+  }
+
+  content.innerHTML=html;
+  content.querySelectorAll('th[data-sort]').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.sort, w=th.dataset.w, g=th.dataset.g||S.group; S.group=g;
+    if(S.sort[g]===k && (!w||w===S.sortSplit)) S.dir[g]=S.dir[g]==='desc'?'asc':'desc';
+    else { S.sort[g]=k; const d=DEFS[g].find(x=>x.k===k); S.dir[g]= k==='__name'?'asc':(d?.low&&d?.rate?'asc':'desc'); }
+    buildChips();
+    if(w) S.sortSplit=w;
+    buildSortSelect(); render();
+  });
+  fit();
+}
+
+/* =================================================================== A4 fit */
+let ORIENT='portrait', FORCE_ORIENT=null;
+function setOrient(o){ ORIENT=o; $('pagesize').textContent=`@page { size: A4 ${o}; margin: 0; }`; $('page').classList.toggle('landscape', o==='landscape'); }
+function fitFont(){
+  // biggest font that keeps the sheet inside one A4 page in the current orientation (null if even 4px overflows)
+  const page=$('page'), content=$('content'), cs=getComputedStyle(page);
+  const innerH=page.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+  const innerW=page.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  const fits=()=>content.scrollHeight<=innerH && content.scrollWidth<=innerW+0.5 && [...content.querySelectorAll('table')].every(t=>t.scrollWidth<=innerW+0.5);
+  let lo=4, hi=18; content.style.setProperty('--fs',lo+'px'); if(!fits()) return {size:null,fits,innerH};
+  for(let i=0;i<14;i++){ const mid=(lo+hi)/2; content.style.setProperty('--fs',mid+'px'); if(fits()) lo=mid; else hi=mid; }
+  return {size:lo,fits,innerH};
+}
+function fit(){
+  const page=$('page'), content=$('content');
+  page.classList.remove('overflow'); content.style.setProperty('--rowpad','0px');
+  page.querySelectorAll('.warn').forEach(w=>w.remove());
+  const warn=msg=>{ const w=document.createElement('div'); w.className='warn'; w.textContent=msg; page.appendChild(w); };
+  if(!S.fit){ setOrient(S.orient==='landscape'?'landscape':'portrait'); content.style.setProperty('--fs','10px'); const r=fitFont(); content.style.setProperty('--fs','10px'); if(content.scrollHeight>page.clientHeight) page.classList.add('overflow'); scalePreview(); return; }
+  let best;
+  for(const o of (FORCE_ORIENT?[FORCE_ORIENT]:S.orient==='auto'?['portrait','landscape']:[S.orient])){
+    setOrient(o); const r=fitFont();
+    if(!best || (r.size||0)>(best.size||0)) best={o,size:r.size};
+  }
+  setOrient(best.o); const r=fitFont();
+  if(r.size==null){ page.classList.add('overflow'); content.style.setProperty('--fs','6px'); warn('Too much for one page — use fewer stats or a higher minimum. It will print on several pages.'); }
+  else{
+    content.style.setProperty('--fs',r.size+'px');
+    if(r.size<7 && ORIENT==='portrait' && S.orient!=='auto') warn('Small text — landscape may read better.');
+    if(S.fill){
+      const n=content.querySelectorAll('tbody tr').length, spare=r.innerH-content.scrollHeight-2;
+      if(n&&spare>0){ let pad=Math.min(spare/n/2, r.size*0.35); content.style.setProperty('--rowpad',pad+'px'); let g=0; while(!r.fits()&&g++<40){ pad*=.95; content.style.setProperty('--rowpad',pad+'px'); } }
+    }
+  }
+  scalePreview();
+}
+function scalePreview(){
+  const stage=$('stage'), sc=$('scaler'), page=$('page');
+  const s=Math.min(1,(stage.clientWidth-(stage.clientWidth<760?24:48))/page.offsetWidth);
+  sc.style.transform=`scale(${s})`; sc.style.width=page.offsetWidth+'px'; sc.style.height=(page.offsetHeight*s)+'px';
+}
+
+/* =================================================================== events */
+$('season').onchange=async e=>{ S.season=+e.target.value; DATA=null; try{ await loadTeams(); }catch(err){ setStatus(`Couldn't load teams (${err.message}). Live seasons need internet; ★ seasons work offline.`,true); render(); return; } buildChips(); render(); loadData(); };
+$('team').onchange=e=>{ S.team=+e.target.value; render(); loadData(); };
+for(const b of $('groupSeg').children) b.onclick=()=>{ const v=b.dataset.v; if(S.view===v) return; S.view=v; if(v!=='both') S.group=v; buildChips(); buildSortSelect(); render(); };
+for(const b of $('editSeg').children) b.onclick=()=>{ S.group=b.dataset.v; buildChips(); buildSortSelect(); render(); };
+$('splitMode').onchange=e=>{ S.split=e.target.value; if(['vl','vr'].includes(S.split)) S.sortSplit=S.split; render(); };
+$('sortSplit').onchange=e=>{ S.sortSplit=e.target.value; render(); };
+$('sortStat').onchange=e=>{ S.sort[S.group]=e.target.value; const d=DEFS[S.group].find(x=>x.k===e.target.value); S.dir[S.group]=e.target.value==='__name'?'asc':(d?.low&&d?.rate?'asc':'desc'); buildSortSelect(); render(); };
+$('sortDir').onchange=e=>{ S.dir[S.group]=e.target.value; render(); };
+$('minQ').oninput=e=>{ S.minQ=Math.max(0,+e.target.value||0); render(); };
+$('orient').onchange=e=>{ S.orient=e.target.value; render(); };
+for(const [id,key] of [['optFit','fit'],['optFill','fill'],['optTotals','totals'],['optLeaders','leaders']]) $(id).onchange=e=>{ S[key]=e.target.checked; render(); };
+$('actMode').onchange=e=>{ S.act=e.target.value; render(); };
+// ---------- printing & PDF ----------
+function showMsg(html){ const m=$('printMsg'); m.innerHTML=html; m.hidden=!html; }
+let printed=false;
+window.addEventListener('beforeprint',()=>{ printed=true; });
+async function printTwoSided(){
+  // render batting + pitching (same orientation), copy both sheets into #printArea, print, then restore
+  const area=$('printArea'); area.innerHTML='';
+  await withRestore(async()=>{ await frontBack(S.team, async()=>{ const c=$('page').cloneNode(true); c.querySelectorAll('.warn').forEach(e=>e.remove()); area.appendChild(c); }); setOrient(area.firstChild?.classList.contains('landscape')?'landscape':'portrait'); });
+  setOrient(area.firstChild?.classList.contains('landscape')?'landscape':'portrait');
+  document.body.classList.add('two');
+  const done=()=>{ document.body.classList.remove('two'); area.innerHTML=''; fit(); window.removeEventListener('afterprint',done); };
+  window.addEventListener('afterprint',done);
+  printed=false; try{ window.print(); }catch(e){}
+  setTimeout(()=>{ if(!printed){ done(); showMsg('This window blocks printing (it looks like a preview). Making a PDF instead…'); downloadPDF(); } }, 700);
+}
+$('printBtn').onclick=()=>{
+  if($('pdfMode').value==='team'){ showMsg(''); printTwoSided(); return; }
+  showMsg(''); printed=false;
+  try{ window.print(); }catch(e){}
+  // embedded previews (e.g. a file preview inside another app) silently block printing
+  setTimeout(()=>{ if(!printed){ showMsg('This window blocks printing (it looks like a preview). Making a PDF instead…'); downloadPDF(); } }, 700);
+};
+$('pdfBtn').onclick=()=>{ showMsg(''); downloadPDF(); };
+async function pdfLibs(){
+  if(!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  if(!window.jspdf) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+}
+async function snapToPdf(pdf, scale){
+  // draw the current A4 sheet into the PDF (adds pages as needed); returns the pdf
+  const page=$('page'), sc=$('scaler'), prev=sc.style.transform;
+  sc.style.transform='none'; page.classList.add('snap');
+  let canvas; try{ canvas=await html2canvas(page,{scale,backgroundColor:'#ffffff',useCORS:true,logging:false}); }
+  finally{ page.classList.remove('snap'); sc.style.transform=prev; }
+  const land=ORIENT==='landscape', W=land?297:210, H=land?210:297, o=land?'landscape':'portrait';
+  if(!pdf) pdf=new jspdf.jsPDF({orientation:o,unit:'mm',format:'a4',compress:true}); else pdf.addPage('a4',o);
+  const pxPerPage=canvas.width*H/W;
+  for(let y=0,i=0; y<canvas.height-2; y+=pxPerPage, i++){
+    const h=Math.min(pxPerPage, canvas.height-y);
+    const c=document.createElement('canvas'); c.width=canvas.width; c.height=h;
+    c.getContext('2d').drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);
+    if(i) pdf.addPage('a4',o);
+    pdf.addImage(c.toDataURL('image/jpeg',0.85),'JPEG',0,0,W,h*W/canvas.width,undefined,'FAST');
+  }
+  return pdf;
+}
+function saveBlob(blob, name, msgEl){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  const m=msgEl||$('printMsg');
+  m.innerHTML=`Saved <b>${esc(name)}</b>. If nothing downloaded, this window blocks downloads: <a href="${url}" target="_blank" rel="noopener">open it here</a>.`; m.hidden=false;
+}
+async function downloadPDF(){
+  const btn=$('pdfBtn'); btn.disabled=true; const old=btn.textContent; btn.textContent='Making PDF…';
+  try{
+    await pdfLibs();
+    const t=(DATA?.team?.name||'team').replace(/[^\w]+/g,'-');
+    if($('pdfMode').value==='team'){
+      let pdf=null;
+      await withRestore(async()=>{ await frontBack(S.team, async()=>{ pdf=await snapToPdf(pdf,3); }); });
+      saveBlob(pdf.output('blob'), `${S.season}-${t}-front-back.pdf`);
+    } else {
+      const pdf=await snapToPdf(null,3);
+      saveBlob(pdf.output('blob'), `${S.season}-${t}-${S.view==='both'?'batting-pitching':S.view==='hitting'?'batting':'pitching'}.pdf`);
+    }
+  }catch(e){
+    showMsg('Couldn’t make the PDF here ('+esc(e.message)+'). Open the page straight in Chrome, Edge or Safari, then use Print.');
+  }finally{ btn.disabled=false; btn.textContent=old; }
+}
+
+/* =================================================================== layouts */
+const RENAME={'RRAA Bat':'RBAT','RRAA BsR':'RBsR','RRAA Fld':'RFLD','rBAT':'RBAT','rBsR':'RBsR','rFLD':'RFLD'};
+const LAYOUT_KEYS=['group','view','split','stats','sort','dir','sortSplit','minQ','orient','fit','fill','totals','leaders','act','bio','noSplit'];
+function getLayouts(){ try{ return JSON.parse(localStorage.getItem('mlbTeamSheetLayouts')||'{}'); }catch(e){ return {}; } }
+function putLayouts(o){ try{ localStorage.setItem('mlbTeamSheetLayouts', JSON.stringify(o)); return true; }catch(e){ return false; } }
+function refreshLayouts(sel){
+  const L=getLayouts(), list=$('layList'); list.innerHTML='';
+  const names=Object.keys(L).sort((a,b)=>a.localeCompare(b));
+  if(!names.length){ const o=document.createElement('option'); o.textContent='No saved layouts yet'; o.value=''; list.appendChild(o); }
+  for(const n of names){ const o=document.createElement('option'); o.value=n; o.textContent=n; list.appendChild(o); }
+  if(sel) list.value=sel;
+  $('layApply').disabled=$('layDel').disabled=!names.length;
+}
+function applyLayout(lay){
+  for(const k of LAYOUT_KEYS) if(k in lay) S[k]=JSON.parse(JSON.stringify(lay[k]).replace(/RRAA (Bat|BsR|Fld)|\br(BAT|BsR|FLD)\b/g,(m)=>RENAME[m]));
+  if(!S.view) S.view=S.group;
+  for(const g of ['hitting','pitching']){ const keys=new Set(DEFS[g].map(d=>d.k)); S.stats[g]=(S.stats[g]||[]).filter(k=>keys.has(k)); }
+  buildChips(); buildSortSelect();
+  render();
+}
+$('laySave').onclick=()=>{
+  const name=$('layName').value.trim() || `Layout ${Object.keys(getLayouts()).length+1}`;
+  const L=getLayouts(); L[name]=Object.fromEntries(LAYOUT_KEYS.map(k=>[k,JSON.parse(JSON.stringify(S[k]))]));
+  if(!putLayouts(L)){ setStatus('This browser won’t let the page save layouts. Use Export layouts instead.',true); return; }
+  $('layName').value=''; refreshLayouts(name); setStatus(`Saved layout “${name}”.`);
+};
+$('layApply').onclick=()=>{ const n=$('layList').value, L=getLayouts(); if(L[n]){ applyLayout(L[n]); setStatus(`Applied layout “${n}”.`); } };
+$('layList').ondblclick=()=>$('layApply').click();
+$('layDel').onclick=()=>{ const n=$('layList').value, L=getLayouts(); if(!L[n]) return; delete L[n]; putLayouts(L); refreshLayouts(); setStatus(`Deleted layout “${n}”.`); };
+$('layExport').onclick=()=>{ const L=getLayouts(); if(!Object.keys(L).length){ setStatus('No saved layouts to export.',true); return; }
+  saveBlob(new Blob([JSON.stringify({app:'mlb-team-sheet',layouts:L},null,2)],{type:'application/json'}),'mlb-team-sheet-layouts.json'); };
+$('layImport').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{ const j=JSON.parse(await f.text()); const inc=j.layouts||j; const L=getLayouts(); let n=0;
+    for(const [k,v] of Object.entries(inc)) if(v&&typeof v==='object'&&v.stats){ L[k]=v; n++; }
+    putLayouts(L); refreshLayouts(); setStatus(`Imported ${n} layout${n===1?'':'s'}.`);
+  }catch(err){ setStatus('That file isn’t a layouts file.',true); }
+  e.target.value='';
+};
+
+/* =================================================================== season export */
+let exporting=false;
+function expMsg(html){ const m=$('expMsg'); m.innerHTML=html; m.hidden=!html; }
+function exportButtons(on){ for(const id of ['expPdf','expCsvH','expCsvP']) $(id).disabled=!on; }
+async function withRestore(fn){
+  // run fn (which switches teams/groups), then put the view back where it was
+  const keep={team:S.team, group:S.group, view:S.view}; exporting=true; exportButtons(false);
+  try{ await fn(); }
+  finally{
+    exporting=false; exportButtons(true); FORCE_ORIENT=null;
+    S.team=keep.team; S.group=keep.group; S.view=keep.view; $('team').value=S.team; buildChips(); buildSortSelect(); await loadData();
+  }
+}
+async function show(team, group){
+  const same = DATA && DATA.by && DATA.team_id==team && DATA.season==S.season;
+  S.team=team; S.group=group; S.view=group;
+  if(same) render(); else await loadData();
+  if(!DATA || DATA.team_id!=team) throw new Error('no data for team '+team);
+}
+async function frontBack(team, each){
+  // batting front, pitching back, both in the orientation that gives the bigger text on the worse of the two
+  FORCE_ORIENT=null; let o=S.orient;
+  if(S.orient==='auto'){
+    const size={};
+    for(const g of ['hitting','pitching']){ await show(team,g); size[g]={}; for(const x of ['portrait','landscape']){ setOrient(x); size[g][x]=fitFont().size||0; } }
+    o = Math.min(size.hitting.landscape,size.pitching.landscape) > Math.min(size.hitting.portrait,size.pitching.portrait) ? 'landscape' : 'portrait';
+  }
+  FORCE_ORIENT=o;
+  for(const g of ['hitting','pitching']){ await show(team,g); await each(g); }
+  FORCE_ORIENT=null;
+}
+async function forEachTeam(groups, fn){
+  const teams=[...TEAMS]; let i=0; const total=teams.length*groups.length;
+  await withRestore(async()=>{ for(const g of groups) for(const t of teams){ await show(t.id,g); i++; await fn(t,g,i,total); } });
+}
+$('expPdf').onclick=async()=>{
+  if(exporting) return;
+  try{
+    const mode=$('expOrder').value;
+    await pdfLibs(); let pdf=null, i=0; const n=TEAMS.length*(mode==='one'?1:2);
+    const page=async(t,g)=>{ i++; expMsg(`Making page ${i} of ${n}: ${esc(t.name)} ${g==='both'?'':g==='hitting'?'batting':'pitching'}…`); await new Promise(r=>setTimeout(r,20)); pdf=await snapToPdf(pdf,2); };
+    if(mode==='one') await withRestore(async()=>{ for(const t of [...TEAMS]){ await show(t.id,'hitting'); S.view='both'; render(); await page(t,'both'); } });
+    else if(mode==='team') await withRestore(async()=>{ for(const t of [...TEAMS]) await frontBack(t.id, g=>page(t,g)); });
+    else await forEachTeam(['hitting','pitching'], (t,g)=>page(t,g));
+    saveBlob(pdf.output('blob'), `${S.season}-MLB-all-teams.pdf`, $('expMsg'));
+  }catch(e){ expMsg('Export stopped: '+esc(e.message)); }
+};
+function csvCell(v){ v=v==null?'':String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+async function exportCSV(group){
+  if(exporting) return;
+  const defs=DEFS[group], hp=group==='hitting';
+  const subs = S.split==='tot'?['tot'] : S.split==='vl'?['vl'] : S.split==='vr'?['vr'] : S.split==='lr'?['vl','vr'] : ['tot','vl','vr'];
+  const lbl={tot:'',vl:hp?' vs LHP':' vs LHB',vr:hp?' vs RHP':' vs RHB'};
+  const lines=[]; let header=null;
+  try{
+    await forEachTeam([group], async(t,g,i,n)=>{
+      expMsg(`Reading ${esc(t.name)} (${i} of ${n})…`);
+      const cols=S.stats[group].map(k=>defs.find(d=>d.k===k)).filter(d=>d&&(DATA.built||!d.sc));
+      const offS=new Set(S.noSplit[group]||[]);
+      const cs=cols.map(d=>({d,ws:(d.split&&!offS.has(d.k))?subs:subs.filter(w=>w==='tot')})).filter(x=>x.ws.length);
+      const bioK=S.bio[group]||[];
+      if(!header){ header=['Season','Team','Name',...bioK.map(k=>BIO_NAME[k]),...(DATA.active?['Active days','Active dates']:[]),...cs.flatMap(({d,ws})=>ws.map(w=>d.k+lbl[w]))]; lines.push(header.map(csvCell).join(',')); }
+      const rows=listFor(group).filter(p=>subs.some(w=>p[w]) && Math.max(...subs.map(w=>qualOf(p,w)))>=S.minQ);
+      for(const p of rows){
+        const vals=[DATA.season,t.name,p.name,...bioK.map(k=>bioVal(p,k))];
+        if(DATA.active) vals.push(actDays(p)??'', p.act?p.act.map(([a,b])=>stintStr(a,b)).join('; '):'');
+        for(const {d,ws} of cs) for(const w of ws){ const v=valueOf(p,w,d); vals.push(v==null?'':fmt(v,d.fmt).replace(/^—$/,'')); }
+        lines.push(vals.map(csvCell).join(','));
+      }
+    });
+    saveBlob(new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv'}), `${S.season}-MLB-all-teams-${hp?'batting':'pitching'}.csv`, $('expMsg'));
+  }catch(e){ expMsg('Export stopped: '+esc(e.message)); }
+}
+$('expCsvH').onclick=()=>exportCSV('hitting');
+$('expCsvP').onclick=()=>exportCSV('pitching');
+window.addEventListener('resize',scalePreview);
+window.addEventListener('beforeprint',()=>{ $('scaler').style.transform='none'; });
+window.addEventListener('afterprint',scalePreview);
+
+(async function init(){
+  if(S.season>TOP||S.season<1876) S.season=BUILT[0]||LAST;
+  buildSeasonSelect(); buildChips(); buildSortSelect(); syncControls(); refreshLayouts();
+  if(document.fonts?.ready) document.fonts.ready.then(()=>fit());
+  try{ await loadTeams(); }catch(e){ setStatus(`Couldn't reach MLB's stats server (${e.message}). Pick a ★ season, which works offline.`,true); render(); return; }
+  render(); loadData();
+})();
+</script>
+</body>
+</html>
