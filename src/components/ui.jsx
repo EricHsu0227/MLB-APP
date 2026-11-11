@@ -133,13 +133,20 @@ export function SubSplits({ line, k, d, main, role }) {
   return <div className="sub">{items.map(({ x, v }) => <span key={x} className={'s' + cls(v)} title={splitLabel(x, role)}>{x === 'vsL' ? 'L' : 'R'} {d.f(v)}</span>)}</div>;
 }
 
-/** Section switcher: every section visible at once as wrapping buttons; pitch-level sections on their own row. */
-export function SectionTabs({ items, more = [], value, onChange, moreLabel = 'Pitch data' }) {
+/** Section switcher: one row of underlined tabs that scrolls sideways (like the original), pitch-level
+ *  sections at the end after a divider. The selected tab is kept in view. */
+export function SectionTabs({ items, more = [], value, onChange }) {
+  const ref = useRef(null);
+  useEffect(() => { // scroll the row (only the row, never the page) so the selected tab is visible
+    const row = ref.current; const b = row?.querySelector('button.on'); if (!b) return;
+    if (b.offsetLeft < row.scrollLeft || b.offsetLeft + b.offsetWidth > row.scrollLeft + row.clientWidth - 28) row.scrollLeft = b.offsetLeft - 24;
+  }, [value]);
   const btn = ([id, label]) => <button type="button" role="tab" aria-selected={value === id} key={id} className={value === id ? 'on' : ''} onClick={() => onChange(id)}>{label}</button>;
   return (
-    <div className="sectabs" role="tablist">
-      <div className="sectabs-row">{items.map(btn)}</div>
-      {more.length > 0 && <div className="sectabs-row more"><span className="sectabs-lbl">{moreLabel}</span>{more.map(btn)}</div>}
+    <div className="sectabs" role="tablist" ref={ref}>
+      {items.map(btn)}
+      {more.length > 0 && <span className="sectabs-div" aria-hidden="true" />}
+      {more.map(btn)}
     </div>
   );
 }
